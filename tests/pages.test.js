@@ -14,7 +14,8 @@ test('Pages output contains a real SQLite database and all engine assets', async
   assert.ok(existsSync('docs/vendor/sql-wasm.js')); assert.ok(existsSync('docs/vendor/sql-wasm.wasm'));
   assert.ok(!existsSync('docs/schedules.js'));
   const html = readFileSync('docs/index.html','utf8');
-  assert.ok(html.includes('src="./pages/bootstrap.js"'));
+  assert.match(html,/src="\.\/pages\/bootstrap\.js\?v=[a-f0-9]{12}"/);
+  assert.ok(readFileSync('docs/pages/bootstrap.js','utf8').includes("{cache:'no-store'}"));
   assert.ok(!readFileSync('docs/styles.css','utf8').includes('fonts.googleapis.com'));
 });
 

@@ -1,7 +1,7 @@
 // GitHub Pages supplies a SQLite data source. The server-hosted version uses
 // the same interface through its database API.
 let stations=[];
-const autocompleteReady = import('./station-autocomplete.js');
+const autocompleteReady = import('./station-autocomplete.js' + (globalThis.railwayAssetVersion ? `?v=${encodeURIComponent(globalThis.railwayAssetVersion)}` : ''));
 let autocomplete, stationPickers=[];
 const stationByCode=code=>stations.find(s=>s.code===code);
 const stationLabel=code=>autocomplete.stationLabel(stationByCode(code));

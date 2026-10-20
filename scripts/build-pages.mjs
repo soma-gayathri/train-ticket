@@ -2,6 +2,7 @@ import { readFileSync, writeFileSync, mkdirSync, copyFileSync, readdirSync } fro
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import initSqlJs from 'sql.js';
+import { createHash } from 'node:crypto';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const output = path.join(root, 'docs');
@@ -32,6 +33,9 @@ const page = readFileSync(path.join(root, 'app/page.tsx'), 'utf8');
 const match = page.match(/__html:\s*("(?:[^"\\]|\\.)*")/);
 if (!match) throw new Error('Could not find the page markup');
 const body = JSON.parse(match[1]);
-writeFileSync(path.join(output, 'index.html'), `<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="Search sample Indian train schedules stored in a SQLite database, entirely on GitHub Pages."><title>Railway — Find your next journey</title><link rel="stylesheet" href="./styles.css"></head><body>${body}<script src="./vendor/sql-wasm.js"></script><script type="module" src="./pages/bootstrap.js"></script></body></html>\n`);
+const hash = createHash('sha256');
+for (const file of ['data/railway.sqlite','app.js','station-autocomplete.js','pages/bootstrap.js','pages/database.js','db/repository.js','styles.css']) hash.update(readFileSync(path.join(output,file)));
+const release = hash.digest('hex').slice(0,12);
+writeFileSync(path.join(output, 'index.html'), `<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="Search sample Indian train schedules stored in a SQLite database, entirely on GitHub Pages."><title>Railway — Find your next journey</title><link rel="stylesheet" href="./styles.css?v=${release}"></head><body>${body}<script src="./vendor/sql-wasm.js"></script><script type="module" src="./pages/bootstrap.js?v=${release}"></script></body></html>\n`);
 writeFileSync(path.join(output, '.nojekyll'), '');
 console.log(JSON.stringify({ output, tables: counts, hosting: 'GitHub Pages only' }));

@@ -9,10 +9,11 @@ const stations = database.prepare('SELECT code, name FROM stations').all();
 database.close();
 const codes = query => matchingStations(stations,query).map(s=>s.code);
 
-test('letter prefixes include popular A, B, K and Z places',()=>{
+test('letter prefixes include popular A, B, C, K and Z places',()=>{
   for (const code of ['ADI','AGC','AII','ASR']) assert.ok(codes('a').includes(code),code);
   for (const code of ['SBC','BNC','BPL','BBS']) assert.ok(codes('B').includes(code),code);
   for (const code of ['HX','KRMR','CNB','KOAA','KPD']) assert.ok(codes('k').includes(code),code);
+  for (const code of ['CDG','CHZ','CGL','MAS','CPR','CBE','CTC']) assert.ok(codes('C').includes(code),code);
   assert.ok(codes('Z').includes('ZB'));
 });
 test('typed prefixes narrow suggestions and matching is case-insensitive',()=>{
@@ -34,5 +35,5 @@ test('common and former city names resolve to valid station records',()=>{
 });
 test('the published app includes the autocomplete module',()=>{
   assert.equal(readFileSync('docs/station-autocomplete.js','utf8'),readFileSync('public/station-autocomplete.js','utf8'));
-  assert.ok(readFileSync('docs/app.js','utf8').includes("import('./station-autocomplete.js')"));
+  assert.ok(readFileSync('docs/app.js','utf8').includes("import('./station-autocomplete.js'"));
 });
