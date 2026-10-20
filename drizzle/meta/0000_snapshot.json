@@ -1,0 +1,187 @@
+{
+  "version": "6",
+  "dialect": "sqlite",
+  "id": "a13b2eb7-83f1-4d16-bf0f-a4bd549da645",
+  "prevId": "00000000-0000-0000-0000-000000000000",
+  "tables": {
+    "stations": {
+      "name": "stations",
+      "columns": {
+        "code": {
+          "name": "code",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "train_stops": {
+      "name": "train_stops",
+      "columns": {
+        "train_number": {
+          "name": "train_number",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "stop_order": {
+          "name": "stop_order",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "station_code": {
+          "name": "station_code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "arrival": {
+          "name": "arrival",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "departure": {
+          "name": "departure",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "arrival_day": {
+          "name": "arrival_day",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "departure_day": {
+          "name": "departure_day",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        }
+      },
+      "indexes": {
+        "train_stops_station_idx": {
+          "name": "train_stops_station_idx",
+          "columns": [
+            "station_code",
+            "train_number"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "train_stops_train_number_trains_number_fk": {
+          "name": "train_stops_train_number_trains_number_fk",
+          "tableFrom": "train_stops",
+          "tableTo": "trains",
+          "columnsFrom": [
+            "train_number"
+          ],
+          "columnsTo": [
+            "number"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "train_stops_station_code_stations_code_fk": {
+          "name": "train_stops_station_code_stations_code_fk",
+          "tableFrom": "train_stops",
+          "tableTo": "stations",
+          "columnsFrom": [
+            "station_code"
+          ],
+          "columnsTo": [
+            "code"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "train_stops_train_number_stop_order_pk": {
+          "columns": [
+            "train_number",
+            "stop_order"
+          ],
+          "name": "train_stops_train_number_stop_order_pk"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "positive_stop_order": {
+          "name": "positive_stop_order",
+          "value": "\"train_stops\".\"stop_order\" >= 0"
+        },
+        "nonnegative_days": {
+          "name": "nonnegative_days",
+          "value": "\"train_stops\".\"arrival_day\" >= 0 AND \"train_stops\".\"departure_day\" >= 0"
+        }
+      }
+    },
+    "trains": {
+      "name": "trains",
+      "columns": {
+        "number": {
+          "name": "number",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "type": {
+          "name": "type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    }
+  },
+  "views": {},
+  "enums": {},
+  "_meta": {
+    "schemas": {},
+    "tables": {},
+    "columns": {}
+  },
+  "internal": {
+    "indexes": {}
+  }
+}
