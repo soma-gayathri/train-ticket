@@ -24,6 +24,7 @@ copyFileSync(path.join(root, 'node_modules/sql.js/LICENSE'), path.join(output, '
 for (const file of ['database.js', 'bootstrap.js']) copyFileSync(path.join(root, 'pages', file), path.join(output, 'pages', file));
 copyFileSync(path.join(root, 'db/repository.js'), path.join(output, 'db/repository.js'));
 copyFileSync(path.join(root, 'public/app.js'), path.join(output, 'app.js'));
+copyFileSync(path.join(root, 'public/station-autocomplete.js'), path.join(output, 'station-autocomplete.js'));
 // Use system-font fallbacks so the GitHub Pages version has no external CDN requests.
 writeFileSync(path.join(output, 'styles.css'), readFileSync(path.join(root, 'public/styles.css'), 'utf8').replace(/@import\s+url\([^;]+;/g, ''));
 

@@ -1,9 +1,11 @@
 // GitHub Pages supplies a SQLite data source. The server-hosted version uses
 // the same interface through its database API.
 let stations=[];
+const autocompleteReady = import('./station-autocomplete.js');
+let autocomplete, stationPickers=[];
 const stationByCode=code=>stations.find(s=>s.code===code);
-const stationLabel=code=>{const s=stationByCode(code);return `${s.name} (${escapeHtml(s.code)})`;};
-const resolveStation=value=>{const q=value.trim().toLowerCase();return stations.find(s=>s.code.toLowerCase()===q||s.name.toLowerCase()===q||stationLabel(s.code).toLowerCase()===q);};
+const stationLabel=code=>autocomplete.stationLabel(stationByCode(code));
+const resolveStation=value=>autocomplete.resolveStation(stations,value);
 function validateSearch(a,b){if(!a.trim()||!b.trim())return {error:'Choose both a departure and a destination station.'};const from=resolveStation(a),to=resolveStation(b);if(!from||!to)return {error:'Choose a station from the suggestions, or enter its full name or station code.'};if(from.code===to.code)return {error:'Choose two different stations for your journey.'};return {from,to};}
 const formatDuration=value=>`${Math.floor(value/60)}h ${String(value%60).padStart(2,'0')}m`;
 const escapeHtml=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -18,6 +20,7 @@ function render(){const ordered=[...current].sort((a,b)=>$('sort').value==='dura
 }
 async function search(){
  const sequence=++searchSequence;controller?.abort();$('results').removeAttribute('aria-busy');
+ stationPickers.forEach(picker=>picker.close());
  if(!stations.length){await initialize();return;}
  const checked=validateSearch($('from').value,$('to').value);$('form-error').hidden=!checked.error;$('from').removeAttribute('aria-invalid');$('to').removeAttribute('aria-invalid');
  if(checked.error){$('form-error').textContent=checked.error;const target=!$('from').value.trim()?'from':'to';$(target).setAttribute('aria-invalid','true');$(target).focus();return;}
@@ -33,7 +36,7 @@ $('sort').addEventListener('change',render);
 document.querySelectorAll('[data-route]').forEach(button=>button.addEventListener('click',()=>{if(!stations.length){initialize();return;}const [from,to]=button.dataset.route.split(',');$('from').value=stationLabel(from);$('to').value=stationLabel(to);search();}));
 async function initialize(){
  $('results-count').textContent='Loading stations…';
- try{const data=await readApi('/api/stations');stations=data.stations;$('stations').innerHTML=stations.map(s=>`<option value="${escapeHtml(stationLabel(s.code))}"></option>`).join('');await search();}
+ try{const [data,module]=await Promise.all([readApi('/api/stations'),autocompleteReady]);stations=data.stations;autocomplete=module;if(!stationPickers.length){stationPickers=['from','to'].map(id=>autocomplete.attachStationAutocomplete($(id),()=>stations,()=>{$('form-error').hidden=true;}));$('stations')?.remove();}await search();}
  catch(error){$('results-count').textContent='Station data could not be loaded.';$('form-error').textContent=error.message+' Use Search trains to retry.';$('form-error').hidden=false;}
 }
 initialize();

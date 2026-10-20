@@ -14,7 +14,7 @@ To regenerate after changing the SQL data, run `npm run build:pages` and
 select **Deploy from a branch**, branch **main**, folder **/docs**, and Save.
 The URL for this repository is `https://soma-gayathri.github.io/train-ticket/`.
 
-The database is a public, read-only snapshot. It contains 24 stations, 11 trains,
+The database is a public, read-only snapshot. It contains 212 stations, 11 trains,
 and 69 stops. Searches do not modify it. To change records, edit `db/seed.sql`,
 rebuild, and upload the updated `docs/` folder. Browser searches are not saved.
 
@@ -36,7 +36,7 @@ Foreign keys link stops to stations and trains. An index supports station lookup
 Day 0 is the train's departure day; day 1 is the next day. Times use IST.
 
 `db/schema.ts` declares the schema; `drizzle/` contains generated schema-only
-migrations. `db/seed.sql` contains the 24 stations, 11 trains, and their stops.
+migrations. `db/seed.sql` contains the 212 stations, 11 trains, and their stops.
 The server seeds an empty, migrated database atomically on its first data request.
 Seed inserts are idempotent; a non-empty database is not automatically reseeded.
 Editing the seed file does not update existing hosted records.

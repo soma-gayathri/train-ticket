@@ -21,7 +21,7 @@ function setup() {
 
 test('schema and seed preserve all records and seed is repeatable',async()=>{
   const {sqlite,adapter,seed}=setup();
-  assert.equal((await listStations(adapter)).length,24);
+  assert.equal((await listStations(adapter)).length,212);
   assert.equal(sqlite.prepare('SELECT count(*) AS n FROM trains').get().n,11);
   const before=sqlite.prepare('SELECT count(*) AS n FROM train_stops').get().n;
   sqlite.exec(seed);
