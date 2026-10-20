@@ -1,5 +1,25 @@
 # Railway: database-backed train search
 
+## GitHub-only deployment
+
+The standalone version in `docs/` runs entirely on GitHub Pages. It downloads
+`docs/data/railway.sqlite` (a real SQLite database with the same three tables)
+and queries it in the browser using a bundled SQLite WebAssembly engine.
+The page, database, scripts, and engine assets are all served by GitHub Pages;
+no external database server, API, CDN, or credentials are required.
+
+To regenerate after changing the SQL data, run `npm run build:pages` and
+`npm run test:pages`. Upload the entire `docs/` folder, including `data/`,
+`vendor/`, `db/`, and `pages/`, to the repository. In repository Settings → Pages,
+select **Deploy from a branch**, branch **main**, folder **/docs**, and Save.
+The URL for this repository is `https://soma-gayathri.github.io/train-ticket/`.
+
+The database is a public, read-only snapshot. It contains 24 stations, 11 trains,
+and 69 stops. Searches do not modify it. To change records, edit `db/seed.sql`,
+rebuild, and upload the updated `docs/` folder. Browser searches are not saved.
+
+## Original server-hosted version
+
 The original browser schedule file has been removed. Train data is stored in
 Cloudflare D1 (SQLite) in production, and a separate local D1 database in preview.
 Schedules remain illustrative samples, not verified railway information.

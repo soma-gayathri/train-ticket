@@ -1,5 +1,5 @@
-// Only the station directory is held in browser memory. Train schedules come
-// from the database-backed API for the requested journey.
+// GitHub Pages supplies a SQLite data source. The server-hosted version uses
+// the same interface through its database API.
 let stations=[];
 const stationByCode=code=>stations.find(s=>s.code===code);
 const stationLabel=code=>{const s=stationByCode(code);return `${s.name} (${escapeHtml(s.code)})`;};
@@ -7,7 +7,7 @@ const resolveStation=value=>{const q=value.trim().toLowerCase();return stations.
 function validateSearch(a,b){if(!a.trim()||!b.trim())return {error:'Choose both a departure and a destination station.'};const from=resolveStation(a),to=resolveStation(b);if(!from||!to)return {error:'Choose a station from the suggestions, or enter its full name or station code.'};if(from.code===to.code)return {error:'Choose two different stations for your journey.'};return {from,to};}
 const formatDuration=value=>`${Math.floor(value/60)}h ${String(value%60).padStart(2,'0')}m`;
 const escapeHtml=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-async function readApi(url,signal){const response=await fetch(url,{signal,cache:'no-store'});const data=await response.json();if(!response.ok)throw new Error(data.error||'Could not load schedules. Please try again.');return data;}
+async function readApi(url,signal){if(globalThis.railwayDataSource)return globalThis.railwayDataSource(url,signal);const response=await fetch(url,{signal,cache:'no-store'});const data=await response.json();if(!response.ok)throw new Error(data.error||'Could not load schedules. Please try again.');return data;}
 let searchSequence=0,controller;
 const $=id=>document.getElementById(id);
 let current=[];
@@ -17,7 +17,7 @@ function render(){const ordered=[...current].sort((a,b)=>$('sort').value==='dura
  $('results').innerHTML=ordered.length?ordered.map(t=>{const intermediate=t.segment.length-2;return `<article class="train-card"><div class="train-main"><div><p class="train-number">${escapeHtml(t.number)} · SAMPLE SERVICE</p><h3 class="train-name">${escapeHtml(t.name)}</h3><span class="train-type">${escapeHtml(t.type)}</span></div><div class="journey"><div><div class="time">${escapeHtml(t.departure.departure)}</div><div class="station-code">${escapeHtml(t.departure.code)}</div></div><div class="journey-middle"><span>${formatDuration(t.duration)}</span><div class="route-line"></div><span>${intermediate?`${intermediate} stop${intermediate>1?'s':''}`:'Non-stop'}</span></div><div class="arrival"><div class="time">${escapeHtml(t.arrival.arrival)}${dayTag(t.dayDifference)}</div><div class="station-code">${escapeHtml(t.arrival.code)}</div></div></div><div class="train-right"><strong>Scheduled service</strong>All times in IST</div></div><details><summary aria-label="View route and station stops for ${escapeHtml(t.name)}"><span>View route & station stops</span></summary><div class="stops"><div class="stop-heading"><span>STATION · SELECTED JOURNEY</span><span>ARRIVAL</span><span>DEPARTURE</span></div>${t.segment.map(s=>`<div class="stop-row"><div class="stop-name">${escapeHtml(stationByCode(s.code).name)}<small>${escapeHtml(s.code)}</small></div><div>${stopTime(s,'arrival',t.departure.departureDay)}</div><div>${stopTime(s,'departure',t.departure.departureDay)}</div></div>`).join('')}</div></details></article>`;}).join(''):'<div class="empty"><h3>No sample trains on this route</h3><p>Try a suggested journey above, or swap your stations.</p></div>';
 }
 async function search(){
- const sequence=++searchSequence;controller?.abort();
+ const sequence=++searchSequence;controller?.abort();$('results').removeAttribute('aria-busy');
  if(!stations.length){await initialize();return;}
  const checked=validateSearch($('from').value,$('to').value);$('form-error').hidden=!checked.error;$('from').removeAttribute('aria-invalid');$('to').removeAttribute('aria-invalid');
  if(checked.error){$('form-error').textContent=checked.error;const target=!$('from').value.trim()?'from':'to';$(target).setAttribute('aria-invalid','true');$(target).focus();return;}
