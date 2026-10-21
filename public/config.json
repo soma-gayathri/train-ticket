@@ -1,4 +1,4 @@
 {
-  "dataSource": "sqlite",
+  "dataSource": "api",
   "apiBaseUrl": ""
 }

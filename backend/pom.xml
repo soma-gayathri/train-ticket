@@ -91,7 +91,7 @@
 		<resources>
 			<resource><directory>src/main/resources</directory></resource>
 			<resource><directory>../db</directory><targetPath>sample-data</targetPath><includes><include>seed.sql</include></includes></resource>
-			<resource><directory>../docs</directory><targetPath>static</targetPath><excludes><exclude>config.json</exclude></excludes></resource>
+			<resource><directory>../frontend</directory><targetPath>static</targetPath></resource>
 		</resources>
 		<plugins>
 			<plugin>

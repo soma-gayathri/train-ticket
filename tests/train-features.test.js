@@ -1,25 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
-import initSqlJs from 'sql.js';
-import { createDataSource } from '../pages/database.js';
 import { createApiDataSource } from '../public/api-client.js';
 import { formatFare, renderExtras } from '../public/train-features.js';
 
-const read = createDataSource({initSqlJs,fetchDatabase:async()=>readFileSync('docs/data/railway.sqlite')});
-test('details and schedule read the whole train route from SQLite',async()=>{
-  const details=await read('/api/trains/12015'); const schedule=await read('/api/trains/12015/schedule');
-  assert.equal(details.number,'12015'); assert.equal(details.sample,true); assert.equal(schedule.stops.length,9);
-  assert.equal(schedule.stops[0].code,'NDLS'); assert.equal(schedule.stops.at(-1).code,'AII');
-});
-test('sample fare rules apply to selected legs and passenger count',async()=>{
-  const quote=await read('/api/trains/12015/fare?from=NDLS&to=JP&travelClass=SL&passengers=2');
-  assert.equal(quote.unitFarePaise,19000); assert.equal(quote.totalFarePaise,38000); assert.equal(quote.sample,true);
-  assert.equal((await read('/api/trains/12015/fare?from=GGN&to=AWR')).totalFarePaise,9000);
-  for(const query of ['passengers=0','passengers=7','passengers=1.5','travelClass=BAD'])await assert.rejects(read('/api/trains/12015/fare?from=NDLS&to=JP&'+query));
-  await assert.rejects(read('/api/trains/12015/fare?from=JP&to=NDLS'));
-  await assert.rejects(read('/api/trains/99999'));
-});
 test('API transport builds the configured URL and exposes backend errors',async()=>{
   let requested;
   const api=createApiDataSource('http://localhost:8080/',async(url,options)=>{requested=url;assert.equal(options.cache,'no-store');return {ok:true,json:async()=>({stations:[]})};});

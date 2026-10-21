@@ -21,7 +21,7 @@ services:
       DB_USERNAME: railway
       DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD before starting}
       SERVER_ADDRESS: 0.0.0.0
-      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8080,https://soma-gayathri.github.io}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8080}
     ports:
       - "127.0.0.1:8080:8080"
     depends_on:

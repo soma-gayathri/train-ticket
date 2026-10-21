@@ -1,5 +1,4 @@
-// GitHub Pages supplies a SQLite data source. The server-hosted version uses
-// the same interface through its database API.
+// Station and train data comes from the Spring Boot database API.
 let stations=[];
 const autocompleteReady = import('./station-autocomplete.js' + (globalThis.railwayAssetVersion ? `?v=${encodeURIComponent(globalThis.railwayAssetVersion)}` : ''));
 let autocomplete, stationPickers=[];

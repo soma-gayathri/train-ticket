@@ -2,7 +2,7 @@ FROM eclipse-temurin:17-jdk AS build
 WORKDIR /workspace
 COPY backend ./backend
 COPY db ./db
-COPY docs ./docs
+COPY frontend ./frontend
 WORKDIR /workspace/backend
 RUN chmod +x mvnw && ./mvnw -B -DskipTests package
 

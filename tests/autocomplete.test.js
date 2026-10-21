@@ -1,10 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { DatabaseSync } from 'node:sqlite';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { matchingStations, resolveStation } from '../public/station-autocomplete.js';
 
-const database = new DatabaseSync('docs/data/railway.sqlite', {readOnly:true});
+const database = new DatabaseSync(':memory:');
+for (const file of readdirSync('drizzle').filter(f=>f.endsWith('.sql')).sort()) database.exec(readFileSync(`drizzle/${file}`,'utf8'));
+database.exec(readFileSync('db/seed.sql','utf8'));
 const stations = database.prepare('SELECT code, name FROM stations').all();
 database.close();
 const codes = query => matchingStations(stations,query).map(s=>s.code);
@@ -34,6 +36,6 @@ test('common and former city names resolve to valid station records',()=>{
   assert.equal(resolveStation(stations,'not a station'),undefined);
 });
 test('the published app includes the autocomplete module',()=>{
-  assert.equal(readFileSync('docs/station-autocomplete.js','utf8'),readFileSync('public/station-autocomplete.js','utf8'));
-  assert.ok(readFileSync('docs/app.js','utf8').includes("import('./station-autocomplete.js'"));
+  assert.equal(readFileSync('frontend/station-autocomplete.js','utf8'),readFileSync('public/station-autocomplete.js','utf8'));
+  assert.ok(readFileSync('frontend/app.js','utf8').includes("import('./station-autocomplete.js'"));
 });

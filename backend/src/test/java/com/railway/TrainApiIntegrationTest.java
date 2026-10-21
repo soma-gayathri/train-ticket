@@ -34,7 +34,10 @@ class TrainApiIntegrationTest {
         assertEquals(4,jdbc.queryForObject("SELECT COUNT(*) FROM fare_rules",Integer.class));
         assertEquals("ok",body("/api/health").path("status").asText());
         assertEquals("api",body("/config.json").path("dataSource").asText());
-        assertTrue(get("/").body().contains("pages/bootstrap.js"));
+        assertTrue(get("/").body().contains("./bootstrap.js?v="));
+        assertTrue(get("/bootstrap.js").body().contains("createApiDataSource()"));
+        assertEquals(404,get("/data/railway.sqlite").statusCode());
+        assertEquals(404,get("/vendor/sql-wasm.wasm").statusCode());
         assertEquals(212,body("/api/stations").path("stations").size());
     }
     @Test void routeQueriesRespectDirectionAndIntermediateStations() throws Exception {
@@ -71,8 +74,8 @@ class TrainApiIntegrationTest {
     }
     @Test void onlyConfiguredFrontendOriginsAreAllowed() throws Exception {
         var allowed = client.send(HttpRequest.newBuilder(URI.create("http://127.0.0.1:"+port+"/api/stations"))
-            .header("Origin","https://soma-gayathri.github.io").GET().build(),HttpResponse.BodyHandlers.ofString());
-        assertEquals("https://soma-gayathri.github.io",allowed.headers().firstValue("Access-Control-Allow-Origin").orElse(""));
+            .header("Origin","http://localhost:8080").GET().build(),HttpResponse.BodyHandlers.ofString());
+        assertEquals("http://localhost:8080",allowed.headers().firstValue("Access-Control-Allow-Origin").orElse(""));
         var denied = client.send(HttpRequest.newBuilder(URI.create("http://127.0.0.1:"+port+"/api/stations"))
             .header("Origin","https://other.example").GET().build(),HttpResponse.BodyHandlers.ofString());
         assertTrue(denied.headers().firstValue("Access-Control-Allow-Origin").isEmpty());
