@@ -37,6 +37,7 @@ const match = page.match(/__html:\s*("(?:[^"\\]|\\.)*")/);
 if (!match) throw new Error('Could not find the page markup');
 const body = JSON.parse(match[1]);
 const hash = createHash('sha256');
+hash.update(readFileSync(fileURLToPath(import.meta.url)));
 for (const file of ['data/railway.sqlite','app.js','station-autocomplete.js','api-client.js','train-features.js','config.json','pages/bootstrap.js','pages/database.js','db/repository.js','styles.css']) hash.update(readFileSync(path.join(output,file)));
 const release = hash.digest('hex').slice(0,12);
 // Version every module dependency, not just the entry script. Otherwise a
