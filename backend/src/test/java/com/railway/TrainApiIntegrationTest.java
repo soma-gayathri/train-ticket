@@ -29,8 +29,8 @@ class TrainApiIntegrationTest {
     }
     @Test void databaseAndFrontendAreReady() throws Exception {
         assertEquals(212,jdbc.queryForObject("SELECT COUNT(*) FROM stations",Integer.class));
-        assertEquals(11,jdbc.queryForObject("SELECT COUNT(*) FROM trains",Integer.class));
-        assertEquals(69,jdbc.queryForObject("SELECT COUNT(*) FROM train_stops",Integer.class));
+        assertEquals(97,jdbc.queryForObject("SELECT COUNT(*) FROM trains",Integer.class));
+        assertEquals(673,jdbc.queryForObject("SELECT COUNT(*) FROM train_stops",Integer.class));
         assertEquals(4,jdbc.queryForObject("SELECT COUNT(*) FROM fare_rules",Integer.class));
         assertEquals("ok",body("/api/health").path("status").asText());
         assertEquals("api",body("/config.json").path("dataSource").asText());
@@ -43,7 +43,7 @@ class TrainApiIntegrationTest {
     @Test void routeQueriesRespectDirectionAndIntermediateStations() throws Exception {
         assertEquals(3,body("/api/trains?from=ndls&to=jp").path("trains").size());
         JsonNode trains = body("/api/trains?from=GGN&to=AWR").path("trains");
-        assertEquals(2,trains.size()); assertEquals(3,trains.get(0).path("segment").size());
+        assertEquals(3,trains.size()); assertEquals(3,trains.get(0).path("segment").size());
         assertEquals("GGN",trains.get(0).path("departure").path("code").asText());
         assertEquals("AWR",trains.get(0).path("arrival").path("code").asText());
         assertEquals(1,body("/api/trains?from=JP&to=NDLS").path("trains").size());
@@ -71,6 +71,21 @@ class TrainApiIntegrationTest {
             var response = get(path); assertEquals(400,response.statusCode(),path); assertTrue(json.readTree(response.body()).has("error"));
         }
         assertEquals(404,get("/api/trains/99999").statusCode());
+    }
+    @Test void regionalDemoRoutesCoverEveryStationAndAdoniBengaluru() throws Exception {
+        assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM stations p WHERE NOT EXISTS (SELECT 1 FROM train_stops s WHERE s.station_code=p.code AND s.departure IS NOT NULL)",Integer.class));
+        assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM stations p WHERE NOT EXISTS (SELECT 1 FROM train_stops s WHERE s.station_code=p.code AND s.arrival IS NOT NULL)",Integer.class));
+        JsonNode trains = body("/api/trains?from=AD&to=BNC").path("trains");
+        assertTrue(trains.size()>0);
+        JsonNode demo = null;
+        for (JsonNode train : trains) if (train.path("number").asText().equals("90001")) demo=train;
+        assertNotNull(demo); assertEquals(5,demo.path("segment").size());
+        assertEquals("AD",demo.path("departure").path("code").asText());
+        assertEquals("BNC",demo.path("arrival").path("code").asText());
+        assertEquals(405,demo.path("duration").asInt());
+        assertTrue(body("/api/trains?from=BNC&to=AD").path("trains").size()>0);
+        assertTrue(body("/api/trains?from=ZB&to=HYB").path("trains").size()>0);
+        assertTrue(body("/api/trains/90001/fare?from=AD&to=BNC").path("sample").asBoolean());
     }
     @Test void onlyConfiguredFrontendOriginsAreAllowed() throws Exception {
         var allowed = client.send(HttpRequest.newBuilder(URI.create("http://127.0.0.1:"+port+"/api/stations"))

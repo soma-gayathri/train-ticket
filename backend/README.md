@@ -39,8 +39,8 @@ creates four tables with Flyway:
 | Table | Records initially | Contents |
 | --- | ---: | --- |
 | stations | 212 | Station codes and names |
-| trains | 11 | Train numbers, names, categories |
-| train_stops | 69 | Ordered station references and arrival/departure day offsets |
+| trains | 97 | Train numbers, names, categories |
+| train_stops | 673 | Ordered station references and arrival/departure day offsets |
 | fare_rules | 4 | Sample base fares and per-leg prices for SL, 3A, 2A, CC |
 
 Startup seeds an empty database transactionally from the shared `../db/seed.sql`
@@ -112,3 +112,10 @@ storage, covering data initialization, queries, schedules, overnight durations,
 fares, invalid input, unknown trains, CORS, and frontend API configuration.
 `npm test` from the project root covers the frontend, API client, autocomplete,
 and shared data/query regressions. Browser SQLite is not shipped.
+
+The regional demo dataset includes 86 fictional services in both directions,
+covering every one of the 212 directory stations. Not every station pair has
+a direct service. Names, numbers, routes, and times are illustrative only.
+Flyway V2 adds these records to existing databases without replacing existing
+records. No database reset is needed. Later data changes need a new migration;
+do not regenerate an applied V2 migration.

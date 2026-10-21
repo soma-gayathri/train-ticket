@@ -22,7 +22,7 @@ function setup() {
 test('schema and seed preserve all records and seed is repeatable',async()=>{
   const {sqlite,adapter,seed}=setup();
   assert.equal((await listStations(adapter)).length,212);
-  assert.equal(sqlite.prepare('SELECT count(*) AS n FROM trains').get().n,11);
+  assert.equal(sqlite.prepare('SELECT count(*) AS n FROM trains').get().n,97);
   const before=sqlite.prepare('SELECT count(*) AS n FROM train_stops').get().n;
   sqlite.exec(seed);
   assert.equal(sqlite.prepare('SELECT count(*) AS n FROM train_stops').get().n,before);
@@ -34,8 +34,8 @@ test('SQL search respects route order and returns only the selected segment',asy
   const {sqlite,adapter}=setup();
   assert.equal((await searchJourneys(adapter,'NDLS','JP')).length,3);
   const found=await searchJourneys(adapter,'GGN','AWR');
-  assert.equal(found.length,2);
-  assert.deepEqual(found[0].segment.map(s=>s.code),['GGN','RE','AWR']);
+  assert.equal(found.length,3);
+  assert.deepEqual(found.find(t=>t.number==='12015').segment.map(s=>s.code),['GGN','RE','AWR']);
   assert.equal((await searchJourneys(adapter,'JP','NDLS')).length,1);
   assert.equal((await searchJourneys(adapter,'NDLS','SBC')).length,0);
   sqlite.close();
@@ -51,12 +51,31 @@ test('overnight and intermediate journeys calculate relative days correctly',asy
 test('invalid, identical, unknown, and SQL-injection station inputs are rejected',async()=>{
   const {sqlite,adapter}=setup();
   for(const [a,b] of [['','JP'],['NDLS','NDLS'],['ZZZZ','JP'],["NDLS' OR 1=1 --",'JP']])await assert.rejects(searchJourneys(adapter,a,b));
-  assert.equal(sqlite.prepare('SELECT count(*) AS n FROM trains').get().n,11);
+  assert.equal(sqlite.prepare('SELECT count(*) AS n FROM trains').get().n,97);
   sqlite.close();
 });
 test('queries reflect database changes rather than a browser-side dataset',async()=>{
   const {sqlite,adapter}=setup();
   sqlite.prepare("UPDATE trains SET name='Updated train name' WHERE number='12015'").run();
   assert.equal((await searchJourneys(adapter,'NDLS','JP')).find(t=>t.number==='12015').name,'Updated train name');
+  sqlite.close();
+});
+
+test('regional samples cover every station with valid forward and return schedules', async()=>{
+  const {sqlite,adapter}=setup();
+  assert.equal(sqlite.prepare('SELECT count(*) AS n FROM stations p WHERE NOT EXISTS (SELECT 1 FROM train_stops s WHERE s.station_code=p.code AND s.departure IS NOT NULL)').get().n,0);
+  assert.equal(sqlite.prepare('SELECT count(*) AS n FROM stations p WHERE NOT EXISTS (SELECT 1 FROM train_stops s WHERE s.station_code=p.code AND s.arrival IS NOT NULL)').get().n,0);
+  const journey=(await searchJourneys(adapter,'AD','BNC')).find(t=>t.number==='90001');
+  assert.deepEqual(journey.segment.map(s=>s.code),['AD','YNK','YPR','SBC','BNC']);
+  assert.equal(journey.duration,405);
+  assert.ok((await searchJourneys(adapter,'BNC','AD')).length>0);
+  const minutes=(time,day)=>day*1440+Number(time.slice(0,2))*60+Number(time.slice(3));
+  for(const train of sqlite.prepare("SELECT number FROM trains WHERE type='Demo Express'").all()){
+    let previous=-1;
+    for(const stop of sqlite.prepare('SELECT * FROM train_stops WHERE train_number=? ORDER BY stop_order').all(train.number)){
+      if(stop.arrival!==null){const arrival=minutes(stop.arrival,stop.arrival_day);assert.ok(arrival>previous,train.number);previous=arrival;}
+      if(stop.departure!==null){const departure=minutes(stop.departure,stop.departure_day);assert.ok(departure>=previous,train.number);previous=departure;}
+    }
+  }
   sqlite.close();
 });

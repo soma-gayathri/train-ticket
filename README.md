@@ -35,8 +35,8 @@ and fares are illustrative samples. Booking and cancellation are not included.
 | Table | Initial records | Contents |
 | --- | ---: | --- |
 | stations | 212 | Station codes and names |
-| trains | 11 | Train numbers, names and categories |
-| train_stops | 69 | Ordered stops, times and day offsets |
+| trains | 97 | Train numbers, names and categories |
+| train_stops | 673 | Ordered stops, times and day offsets |
 | fare_rules | 4 | Sample fare calculation rules |
 
 The local database is backend/data/railway.mv.db when the application is
@@ -58,3 +58,10 @@ endpoints and the packaged frontend using isolated H2 storage.
 The older app/api, Drizzle, and Cloudflare tooling are retained as source
 history and are not used by the Spring Boot runtime. The active server schema
 is maintained in backend/src/main/resources/db/migration/.
+
+The regional demo dataset includes 86 fictional services in both directions,
+covering every one of the 212 directory stations. Not every station pair has
+a direct service. Names, numbers, routes, and times are illustrative only.
+Flyway V2 adds these records to existing databases without replacing existing
+records. No database reset is needed. Later data changes need a new migration;
+do not regenerate an applied V2 migration.
