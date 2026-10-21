@@ -16,6 +16,8 @@ test('Pages output contains a real SQLite database and all engine assets', async
   const html = readFileSync('docs/index.html','utf8');
   assert.match(html,/src="\.\/pages\/bootstrap\.js\?v=[a-f0-9]{12}"/);
   assert.ok(readFileSync('docs/pages/bootstrap.js','utf8').includes("{cache:'no-store'}"));
+  assert.match(readFileSync('docs/pages/bootstrap.js','utf8'),/from '\.\/database\.js\?v=[a-f0-9]{12}'/);
+  assert.match(readFileSync('docs/pages/database.js','utf8'),/from '\.\.\/db\/repository\.js\?v=[a-f0-9]{12}'/);
   assert.ok(!readFileSync('docs/styles.css','utf8').includes('fonts.googleapis.com'));
 });
 

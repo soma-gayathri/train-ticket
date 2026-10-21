@@ -39,6 +39,14 @@ const body = JSON.parse(match[1]);
 const hash = createHash('sha256');
 for (const file of ['data/railway.sqlite','app.js','station-autocomplete.js','api-client.js','train-features.js','config.json','pages/bootstrap.js','pages/database.js','db/repository.js','styles.css']) hash.update(readFileSync(path.join(output,file)));
 const release = hash.digest('hex').slice(0,12);
+// Version every module dependency, not just the entry script. Otherwise a
+// returning browser can combine a new frontend with cached old query code.
+for (const file of ['pages/bootstrap.js','pages/database.js']) {
+  const filename = path.join(output,file);
+  const source = readFileSync(filename,'utf8').replace(/from\s+(['"])(\.\.?\/[^'"]+\.js)\1/g,
+    (_match,quote,specifier) => `from ${quote}${specifier}?v=${release}${quote}`);
+  writeFileSync(filename,source);
+}
 writeFileSync(path.join(output, 'index.html'), `<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="Search sample Indian train schedules stored in a SQLite database, entirely on GitHub Pages."><title>Railway — Find your next journey</title><link rel="stylesheet" href="./styles.css?v=${release}"></head><body>${body}<script src="./vendor/sql-wasm.js"></script><script type="module" src="./pages/bootstrap.js?v=${release}"></script></body></html>\n`);
 writeFileSync(path.join(output, '.nojekyll'), '');
 console.log(JSON.stringify({ output, tables: counts, hosting: 'GitHub Pages only' }));
