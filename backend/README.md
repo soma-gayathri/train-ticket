@@ -29,6 +29,19 @@ To use another user or server:
 
 For deployment, use an application-specific MySQL account rather than root.
 
+## Forgotten local MySQL password
+
+For the standard Windows MySQL80 service, run reset-mysql-password.ps1 from
+an Administrator PowerShell window. It asks for a new password twice, uses a
+temporary init-file to reset root@localhost, verifies the new login, restores
+the original server configuration, and restarts the normal service. Databases
+are preserved. The temporary password SQL is access-restricted and deleted;
+the password is never written to this repository or printed. MySQL will be
+briefly unavailable. Other applications using root need the new password.
+
+Then run start-mysql.ps1 using the new password. The procedure follows the
+[MySQL Windows password-reset instructions](https://dev.mysql.com/doc/refman/8.0/en/resetting-permissions.html).
+
 ## Connection settings
 
 | Environment variable | Default / purpose |
