@@ -3,7 +3,8 @@ import { DatabaseSync } from 'node:sqlite';
 import { readFileSync, writeFileSync, readdirSync, existsSync } from 'node:fs';
 
 const migration = 'backend/src/main/resources/db/migration/V2__sample_route_coverage.sql';
-if (existsSync(migration)) throw new Error('V2 already exists. Applied migrations are immutable; create a new migration for later data changes.');
+const mysqlMigration = 'backend/src/main/resources/db/mysql/V2__sample_route_coverage.sql';
+if (existsSync(migration) || existsSync(mysqlMigration)) throw new Error('V2 already exists. Applied migrations are immutable; create a new migration for later data changes.');
 const marker = '\n-- Additional fictional regional demo services.\n';
 const seed = readFileSync('db/seed.sql','utf8').split(marker)[0];
 const db = new DatabaseSync(':memory:');
@@ -43,7 +44,7 @@ const missing = [...names.keys()].filter(code=>!covered.has(code));
 if (missing.length) throw new Error('Uncovered stations: '+missing.join(', '));
 db.exec(extra);
 if (db.prepare('PRAGMA foreign_key_check').all().length) throw new Error('Invalid foreign keys');
-// Portable conditional inserts work on H2 and PostgreSQL. Include base rows so
+// Portable conditional inserts work on H2 and MySQL. Include base rows so
 // a fresh database and an existing installation both receive the complete data.
 let portable = '-- Fictional sample routes, not verified railway services. Adds data without replacing existing records.\n';
 const keys = {stations:['code'],trains:['number'],train_stops:['train_number','stop_order'],fare_rules:['travel_class']};
@@ -55,5 +56,6 @@ for (const table of ['stations','trains','train_stops','fare_rules']) {
 }
 writeFileSync('db/seed.sql',seed+marker+extra);
 writeFileSync(migration,portable);
+writeFileSync(mysqlMigration,portable);
 console.log({addedTrains:number-90001,coveredStations:covered.size,trains:db.prepare('SELECT count(*) AS n FROM trains').get().n,stops:db.prepare('SELECT count(*) AS n FROM train_stops').get().n});
 db.close();

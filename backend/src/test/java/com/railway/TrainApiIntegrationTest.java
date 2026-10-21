@@ -14,7 +14,8 @@ import tools.jackson.databind.json.JsonMapper;
 import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest(webEnvironment=SpringBootTest.WebEnvironment.RANDOM_PORT,properties={
-    "spring.datasource.url=jdbc:h2:mem:railway-test;DB_CLOSE_DELAY=-1", "spring.datasource.username=sa", "spring.datasource.password="
+    "spring.datasource.url=jdbc:h2:mem:railway-test;DB_CLOSE_DELAY=-1", "spring.datasource.username=sa", "spring.datasource.password=",
+    "spring.flyway.locations=classpath:db/migration"
 })
 class TrainApiIntegrationTest {
     @LocalServerPort int port;

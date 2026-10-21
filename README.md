@@ -7,18 +7,19 @@ part of this application.
 
 ## Run the website
 
-Use Node 22.13+ and Java 17+. From this directory:
+Use Node 22.13+, Java 17+, and a running MySQL 8.0.16+ server. From this directory:
 
 ```powershell
 npm ci
 npm run build:frontend
 npm test
 cd backend
-.\mvnw.cmd clean verify
-java -jar target/railway-api-0.0.1-SNAPSHOT.jar
+.\start-mysql.ps1
 ```
 
-On macOS/Linux use ./mvnw clean verify. Open http://localhost:8080.
+The script asks privately for your MySQL root password, creates the railway
+database if missing, builds the app, and starts it. Open http://localhost:8080.
+For other systems or a preconfigured server, see backend/README.md.
 Keep the Java process running while using the website.
 
 The frontend build is committed in frontend/ and bundled into the Java JAR.
@@ -39,14 +40,15 @@ and fares are illustrative samples. Booking and cancellation are not included.
 | train_stops | 673 | Ordered stops, times and day offsets |
 | fare_rules | 4 | Sample fare calculation rules |
 
-The local database is backend/data/railway.mv.db when the application is
-started from backend/. It survives restarts and is excluded from Git.
-db/seed.sql supplies initial sample data. Startup seeds an empty database;
-editing the seed does not overwrite existing database records.
+The application uses MySQL database railway on localhost:3306 with username
+root by default. Credentials are supplied through server environment variables.
+Flyway creates the tables and inserts sample data from db/mysql migrations at
+startup. The old backend/data/railway.mv.db file is preserved but is no longer
+used; custom edits in that H2 database are not automatically transferred.
 
 See [backend/README.md](backend/README.md) for API routes, database migration
-instructions, PostgreSQL configuration, and container deployment. To publish
-online, deploy the Java application with persistent storage or PostgreSQL and
+instructions, MySQL configuration, and container deployment. To publish
+online, deploy the Java application with persistent storage or MySQL and
 an HTTPS endpoint. The deployed application supplies one URL for frontend and API.
 
 ## Tests and older source
@@ -57,7 +59,7 @@ endpoints and the packaged frontend using isolated H2 storage.
 
 The older app/api, Drizzle, and Cloudflare tooling are retained as source
 history and are not used by the Spring Boot runtime. The active server schema
-is maintained in backend/src/main/resources/db/migration/.
+is maintained in backend/src/main/resources/db/mysql/.
 
 The regional demo dataset includes 86 fictional services in both directions,
 covering every one of the 212 directory stations. Not every station pair has
