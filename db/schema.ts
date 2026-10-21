@@ -6,6 +6,12 @@ export const stations = sqliteTable('stations', {
 export const trains = sqliteTable('trains', {
   number: text('number').primaryKey(), name: text('name').notNull(), type: text('type').notNull(),
 });
+export const fareRules = sqliteTable('fare_rules', {
+  travelClass: text('travel_class').primaryKey(),
+  label: text('label').notNull(),
+  basePaise: integer('base_paise').notNull(),
+  perLegPaise: integer('per_leg_paise').notNull(),
+}, table => [check('nonnegative_fares', sql`${table.basePaise} >= 0 AND ${table.perLegPaise} >= 0`)]);
 export const trainStops = sqliteTable('train_stops', {
   trainNumber: text('train_number').notNull().references(() => trains.number),
   stopOrder: integer('stop_order').notNull(),

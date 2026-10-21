@@ -1,0 +1,9 @@
+.git
+node_modules
+.sites-runtime
+.wrangler
+.next
+dist
+backend/target
+backend/data
+**/.env*

@@ -1,9 +1,22 @@
 # Railway: database-backed train search
 
+## Java Spring Boot backend
+
+`backend/` adds a Java 17 / Spring Boot 4.1.1 API and persistent H2 database,
+with PostgreSQL and Docker Compose configuration for deployment. It serves the
+frontend itself at `http://localhost:8080`, connected to the Java API. See
+`backend/README.md` for startup commands, table definitions, API examples, tests,
+and how to connect GitHub Pages to a deployed HTTPS backend.
+
+Search results now include Train details, Full train schedule, and Calculate
+sample fare controls. The API and SQLite demo both support these features.
+All schedules and fares are illustrative. Booking and cancellation are not
+implemented in this first phase.
+
 ## GitHub-only deployment
 
 The standalone version in `docs/` runs entirely on GitHub Pages. It downloads
-`docs/data/railway.sqlite` (a real SQLite database with the same three tables)
+`docs/data/railway.sqlite` (a real SQLite database with the same four data tables)
 and queries it in the browser using a bundled SQLite WebAssembly engine.
 The page, database, scripts, and engine assets are all served by GitHub Pages;
 no external database server, API, CDN, or credentials are required.
@@ -15,7 +28,7 @@ select **Deploy from a branch**, branch **main**, folder **/docs**, and Save.
 The URL for this repository is `https://soma-gayathri.github.io/train-ticket/`.
 
 The database is a public, read-only snapshot. It contains 212 stations, 11 trains,
-and 69 stops. Searches do not modify it. To change records, edit `db/seed.sql`,
+69 stops, and four sample fare rules. Searches do not modify it. To change records, edit `db/seed.sql`,
 rebuild, and upload the updated `docs/` folder. Browser searches are not saved.
 
 ## Original server-hosted version

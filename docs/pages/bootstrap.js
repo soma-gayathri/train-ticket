@@ -1,4 +1,5 @@
 import { createDataSource } from './database.js';
+import { createApiDataSource } from '../api-client.js';
 
 const release = new URL(import.meta.url).searchParams.get('v');
 globalThis.railwayAssetVersion = release;
@@ -8,7 +9,7 @@ function versionedUrl(path) {
   return url;
 }
 
-globalThis.railwayDataSource = createDataSource({
+const sqliteDataSource = createDataSource({
   initSqlJs: options => {
     if (!globalThis.initSqlJs) throw new Error('The database engine could not load. Refresh the page to retry.');
     return globalThis.initSqlJs(options);
@@ -20,5 +21,18 @@ globalThis.railwayDataSource = createDataSource({
     return response.arrayBuffer();
   },
 });
+
+let configured;
+globalThis.railwayDataSource = async (path,signal) => {
+  if (!configured) configured = (async () => {
+    const response = await fetch(versionedUrl('../config.json'),{cache:'no-store'});
+    if (!response.ok) throw new Error('Website configuration could not be loaded. Please try again.');
+    const config = await response.json();
+    if (config.dataSource === 'api') return createApiDataSource(config.apiBaseUrl || '');
+    if (config.dataSource === 'sqlite') return sqliteDataSource;
+    throw new Error('Choose api or sqlite as the configured data source.');
+  })().catch(error => { configured = undefined; throw error; });
+  return (await configured)(path,signal);
+};
 
 await import(versionedUrl('../app.js').href);

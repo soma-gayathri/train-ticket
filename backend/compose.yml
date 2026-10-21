@@ -1,0 +1,31 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: railway
+      POSTGRES_USER: railway
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD before starting}
+    volumes:
+      - railway-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U railway -d railway"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+  api:
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/railway
+      DB_USERNAME: railway
+      DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD before starting}
+      SERVER_ADDRESS: 0.0.0.0
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8080,https://soma-gayathri.github.io}
+    ports:
+      - "127.0.0.1:8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+volumes:
+  railway-db:

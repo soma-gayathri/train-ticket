@@ -1,4 +1,4 @@
-import { listStations, searchJourneys } from '../db/repository.js';
+import { listStations, searchJourneys, trainDetails, calculateSampleFare } from '../db/repository.js';
 
 export function sqliteAdapter(database) {
   return {
@@ -48,6 +48,15 @@ export function createDataSource({ initSqlJs, fetchDatabase, wasmUrl }) {
       return { trains: await searchJourneys(database,
         (url.searchParams.get('from') ?? '').trim().toUpperCase(),
         (url.searchParams.get('to') ?? '').trim().toUpperCase()) };
+    }
+    const trainRoute = url.pathname.match(/^\/api\/trains\/([0-9]{5})(?:\/(schedule|fare))?$/);
+    if (trainRoute) {
+      const [,number,action] = trainRoute;
+      if (action === 'fare') return calculateSampleFare(database,number,
+        (url.searchParams.get('from') ?? '').trim().toUpperCase(),
+        (url.searchParams.get('to') ?? '').trim().toUpperCase(),
+        url.searchParams.get('travelClass') ?? 'SL',Number(url.searchParams.get('passengers') ?? '1'));
+      return trainDetails(database,number);
     }
     throw new Error('Unknown data request');
   };

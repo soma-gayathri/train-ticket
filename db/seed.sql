@@ -1,4 +1,9 @@
 -- Illustrative sample schedules. Not verified travel information.
+INSERT OR IGNORE INTO fare_rules (travel_class, label, base_paise, per_leg_paise) VALUES
+('SL', 'Sleeper', 5000, 2000),
+('3A', 'AC 3 Tier', 10000, 4500),
+('2A', 'AC 2 Tier', 15000, 7000),
+('CC', 'AC Chair Car', 8000, 3500);
 INSERT OR IGNORE INTO stations (code, name) VALUES
 ('NDLS', 'New Delhi'),
 ('DEC', 'Delhi Cantt'),

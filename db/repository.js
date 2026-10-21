@@ -40,3 +40,27 @@ export async function searchJourneys(db, from, to) {
       dayDifference: arrival.arrivalDay - departure.departureDay};
   });
 }
+
+export async function trainDetails(db, number) {
+  if (!/^[0-9]{5}$/.test(number)) throw new Error('Enter a valid five-digit train number.');
+  const train = (await db.prepare('SELECT number, name, type FROM trains WHERE number = ?').bind(number).all()).results[0];
+  if (!train) throw new Error('Train not found.');
+  const stops = (await db.prepare(`SELECT s.station_code AS code, p.name, s.arrival, s.departure,
+    s.arrival_day AS arrivalDay, s.departure_day AS departureDay, s.stop_order AS stopOrder
+    FROM train_stops s JOIN stations p ON p.code = s.station_code WHERE s.train_number = ? ORDER BY s.stop_order`).bind(number).all()).results;
+  return {...train, sample:true, stops};
+}
+
+export async function calculateSampleFare(db, number, from, to, travelClass='SL', passengers=1) {
+  await trainDetails(db,number);
+  if (!Number.isInteger(passengers) || passengers < 1 || passengers > 6) throw new Error('Passengers must be between 1 and 6.');
+  const rule = (await db.prepare('SELECT travel_class, base_paise, per_leg_paise FROM fare_rules WHERE travel_class = ?').bind(travelClass.trim().toUpperCase()).all()).results[0];
+  if (!rule) throw new Error('Choose SL, 3A, 2A, or CC.');
+  const journey = (await searchJourneys(db,from,to)).find(train => train.number === number);
+  if (!journey) throw new Error('This train does not serve that journey in the selected direction.');
+  const legs = journey.segment.length-1;
+  const unitFarePaise = rule.base_paise+rule.per_leg_paise*legs;
+  return {trainNumber:number,from,to,travelClass:rule.travel_class,passengers,currency:'INR',
+    unitFarePaise,totalFarePaise:unitFarePaise*passengers,legs,sample:true,
+    disclaimer:'Illustrative fare based on scheduled stop-to-stop legs. Not a real railway quote or class-availability guarantee.'};
+}
