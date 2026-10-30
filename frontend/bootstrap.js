@@ -1,10 +1,10 @@
-import { createApiDataSource } from './api-client.js?v=c7f3aaefe8a2';
+import { createApiDataSource } from './api-client.js?v=1cde86182f62';
 
 const release = new URL(import.meta.url).searchParams.get('v');
 globalThis.railwayAssetVersion = release;
 const configUrl = new URL('./config.json', import.meta.url);
 const config = await fetch(configUrl, { cache: 'no-store' }).then(response => response.ok ? response.json() : {});
-// Local Express uses the same origin. GitHub Pages uses the configured ngrok URL.
+// GitHub Pages uses the configured ngrok URL; the local site keeps its own origin.
 globalThis.railwayDataSource = createApiDataSource(config.apiBaseUrl || '');
 const app = new URL('./app.js', import.meta.url);
 if (release) app.searchParams.set('v', release);

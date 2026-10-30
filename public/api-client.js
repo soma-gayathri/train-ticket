@@ -13,7 +13,7 @@ export function createApiDataSource(baseUrl='', fetchImpl=globalThis.fetch) {
     if (signal?.aborted) abort(); else signal?.addEventListener('abort',abort,{once:true});
     const timer = setTimeout(abort,15000);
     try {
-      const response = await fetchImpl(base+path,{signal:controller.signal,cache:'no-store',headers:{Accept:'application/json'}});
+      const response = await fetchImpl(base+path,{signal:controller.signal,cache:'no-store',headers:{Accept:'application/json','ngrok-skip-browser-warning':'true'}});
       let data;
       try { data = await response.json(); } catch { throw new Error('The backend did not return valid JSON. Check the API base URL.'); }
       if (!response.ok) throw new Error(data.error || data.detail || `Backend request failed (${response.status}).`);
