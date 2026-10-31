@@ -11,10 +11,10 @@ const assets = ['app.js', 'station-autocomplete.js', 'api-client.js', 'bootstrap
 for (const file of assets) copyFileSync(path.join(root, 'public', file), path.join(output, file));
 writeFileSync(path.join(output, 'styles.css'), readFileSync(path.join(root, 'public/styles.css'), 'utf8').replace(/@import\s+url\([^;]+;/g, ''));
 
-const page = readFileSync(path.join(root, 'app/page.tsx'), 'utf8');
-const match = page.match(/__html:\s*("(?:[^"\\]|\\.)*")/);
+const page = readFileSync(path.join(root, 'frontend/index.html'), 'utf8');
+const match = page.match(/<body>([\s\S]*?)<script type="module"[\s\S]*?<\/script><\/body>/);
 if (!match) throw new Error('Could not find the page markup');
-const body = JSON.parse(match[1]);
+const body = match[1];
 const hash = createHash('sha256');
 hash.update(readFileSync(fileURLToPath(import.meta.url)));
 hash.update(body);
