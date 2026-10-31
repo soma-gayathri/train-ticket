@@ -32,6 +32,7 @@ async function search(){
  finally{if(sequence===searchSequence)$('results').removeAttribute('aria-busy');}
 }
 $('search-form').addEventListener('submit',event=>{event.preventDefault();search();});
+['from','to'].forEach(id=>{const input=$(id);input.addEventListener('focus',()=>input.select(),{once:true});});
 $('travel-date').min=new Date().toISOString().slice(0,10);$('travel-date').value=$('travel-date').min;$('travel-date').addEventListener('change',()=>{$('return-date').min=$('travel-date').value;if($('return-date').value&&$('return-date').value<=$('travel-date').value)$('return-date').value='';});
 document.querySelectorAll('input[name="trip-type"]').forEach(input=>input.addEventListener('change',()=>{const isRoundTrip=input.value==='round-trip'&&input.checked;$('return-date-field').hidden=!isRoundTrip;$('return-date').required=isRoundTrip;if(isRoundTrip)$('return-date').min=$('travel-date').value;}));
 $('swap').addEventListener('click',()=>{const previous=$('from').value;$('from').value=$('to').value;$('to').value=previous;if($('from').value.trim()&&$('to').value.trim())search();});
