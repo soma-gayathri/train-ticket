@@ -9,12 +9,6 @@ export function renderExtras(train) {
     <div class="booking-action"><button type="button" class="book-ticket" data-book-train="${number}" data-book-name="${escapeHtml(train.name)}">Book ticket</button><p class="booking-status" role="status" aria-live="polite"></p></div>
     <details data-feature="details" data-number="${number}"><summary>Train details</summary><div class="feature-content" aria-live="polite"></div></details>
     <details data-feature="schedule" data-number="${number}"><summary>Full train schedule</summary><div class="feature-content" aria-live="polite"></div></details>
-    <details><summary>Calculate sample fare</summary><div class="feature-content"><p class="sample-fare-note">Illustrative pricing only. This does not check real fares or class availability.</p>
-      <form class="fare-form" data-number="${number}" data-from="${escapeHtml(train.departure.code)}" data-to="${escapeHtml(train.arrival.code)}">
-        <label>Travel class<select name="travelClass"><option value="SL">Sleeper (SL)</option><option value="3A">AC 3 Tier (3A)</option><option value="2A">AC 2 Tier (2A)</option><option value="CC">Chair Car (CC)</option></select></label>
-        <label>Passengers<input name="passengers" type="number" min="1" max="6" step="1" value="1" required></label>
-        <button type="submit">Calculate fare</button>
-      </form><p class="fare-output" role="status" aria-live="polite"></p></div></details>
   </div>`;
 }
 
@@ -51,20 +45,4 @@ export function installTrainFeatures(root,readApi) {
     finally { delete panel.dataset.loading; }
   },true);
 
-  root.addEventListener('submit',async event => {
-    const form = event.target;
-    if (!form.matches('.fare-form')) return;
-    event.preventDefault();
-    const output = form.parentElement.querySelector('.fare-output');
-    const button = form.querySelector('button');
-    const passengers = Number(form.elements.passengers.value);
-    if (!Number.isInteger(passengers) || passengers < 1 || passengers > 6) { output.textContent = 'Passengers must be between 1 and 6.'; return; }
-    const params = new URLSearchParams({from:form.dataset.from,to:form.dataset.to,travelClass:form.elements.travelClass.value,passengers:String(passengers)});
-    button.disabled = true; output.textContent = 'Calculating sample fare…';
-    try {
-      const data = await readApi(`/api/trains/${encodeURIComponent(form.dataset.number)}/fare?${params}`);
-      if (form.isConnected) output.textContent = `${formatFare(data.totalFarePaise,data.currency)} total for ${data.passengers} passenger${data.passengers === 1 ? '' : 's'} (${formatFare(data.unitFarePaise,data.currency)} each). ${data.disclaimer}`;
-    } catch(error) { if (form.isConnected) output.textContent = error.message; }
-    finally { button.disabled = false; }
-  });
 }
