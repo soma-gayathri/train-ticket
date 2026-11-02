@@ -7,7 +7,7 @@ export function renderExtras(train) {
   const number = escapeHtml(train.number);
   return `<div class="train-features">
     <div class="booking-action"><button type="button" class="book-ticket" data-book-train="${number}" data-book-name="${escapeHtml(train.name)}">Book ticket</button><p class="booking-status" role="status" aria-live="polite"></p>
-      <form class="booking-form" data-book-train="${number}" data-book-name="${escapeHtml(train.name)}" hidden>
+      <form class="booking-form" data-book-train="${number}" data-book-name="${escapeHtml(train.name)}" hidden style="display:none">
         <div class="passenger-list"><div class="passenger-row"><label>Passenger name<input name="passengerName" autocomplete="name" required maxlength="60" placeholder="Enter full name"></label><label>Age<input name="age" type="number" min="1" max="120" required></label><label>Gender<select name="gender" required><option value="">Select</option><option>Female</option><option>Male</option><option>Other</option></select></label></div></div>
         <label>Travel class<select name="travelClass"><option>Sleeper (SL)</option><option>AC 3 Tier (3A)</option><option>AC 2 Tier (2A)</option><option>Chair Car (CC)</option></select></label>
         <button type="button" class="add-passenger">+ Add passenger</button>
@@ -25,6 +25,7 @@ export function installTrainFeatures(root,readApi) {
     const status = button.parentElement.querySelector('.booking-status');
     const form = button.parentElement.querySelector('.booking-form');
     form.hidden = false;
+    form.style.display = 'flex';
     status.textContent = `Enter passenger details for ${button.dataset.bookName}.`;
     button.hidden = true;
     form.elements.passengerName.focus();
@@ -40,6 +41,7 @@ export function installTrainFeatures(root,readApi) {
     const action = form.closest('.booking-action');
     action.querySelector('.booking-status').textContent = `Demo booking confirmed for ${passengers.length} passenger${passengers.length===1?'':'s'}. Demo PNR: ${pnr}. No payment was taken and no real ticket was created.`;
     form.hidden = true;
+    form.style.display = 'none';
   });
 
   root.addEventListener('click',event => {
