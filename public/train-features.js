@@ -6,6 +6,7 @@ export function formatFare(paise,currency='INR') {
 export function renderExtras(train) {
   const number = escapeHtml(train.number);
   return `<div class="train-features">
+    <div class="booking-action"><button type="button" class="book-ticket" data-book-train="${number}" data-book-name="${escapeHtml(train.name)}">Book ticket</button><p class="booking-status" role="status" aria-live="polite"></p></div>
     <details data-feature="details" data-number="${number}"><summary>Train details</summary><div class="feature-content" aria-live="polite"></div></details>
     <details data-feature="schedule" data-number="${number}"><summary>Full train schedule</summary><div class="feature-content" aria-live="polite"></div></details>
     <details><summary>Calculate sample fare</summary><div class="feature-content"><p class="sample-fare-note">Illustrative pricing only. This does not check real fares or class availability.</p>
@@ -18,6 +19,15 @@ export function renderExtras(train) {
 }
 
 export function installTrainFeatures(root,readApi) {
+  root.addEventListener('click',event => {
+    const button = event.target.closest('.book-ticket');
+    if (!button) return;
+    const status = button.parentElement.querySelector('.booking-status');
+    status.textContent = `${button.dataset.bookName} selected. This is a demo booking; payment and real ticket confirmation are not available yet.`;
+    button.textContent = 'Selected for booking';
+    button.disabled = true;
+  });
+
   root.addEventListener('toggle',async event => {
     const panel = event.target;
     if (!panel.matches('details[data-feature]') || !panel.open || panel.dataset.loaded || panel.dataset.loading) return;
