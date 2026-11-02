@@ -6,7 +6,14 @@ export function formatFare(paise,currency='INR') {
 export function renderExtras(train) {
   const number = escapeHtml(train.number);
   return `<div class="train-features">
-    <div class="booking-action"><button type="button" class="book-ticket" data-book-train="${number}" data-book-name="${escapeHtml(train.name)}">Book ticket</button><p class="booking-status" role="status" aria-live="polite"></p></div>
+    <div class="booking-action"><button type="button" class="book-ticket" data-book-train="${number}" data-book-name="${escapeHtml(train.name)}">Book ticket</button><p class="booking-status" role="status" aria-live="polite"></p>
+      <form class="booking-form" data-book-train="${number}" data-book-name="${escapeHtml(train.name)}" hidden>
+        <label>Passenger name<input name="passengerName" autocomplete="name" required maxlength="60" placeholder="Enter full name"></label>
+        <label>Age<input name="age" type="number" min="1" max="120" required></label>
+        <label>Gender<select name="gender" required><option value="">Select</option><option>Female</option><option>Male</option><option>Other</option></select></label>
+        <label>Travel class<select name="travelClass"><option>Sleeper (SL)</option><option>AC 3 Tier (3A)</option><option>AC 2 Tier (2A)</option><option>Chair Car (CC)</option></select></label>
+        <button type="submit">Confirm demo booking</button>
+      </form></div>
     <details data-feature="details" data-number="${number}"><summary>Train details</summary><div class="feature-content" aria-live="polite"></div></details>
     <details data-feature="schedule" data-number="${number}"><summary>Full train schedule</summary><div class="feature-content" aria-live="polite"></div></details>
   </div>`;
@@ -17,9 +24,25 @@ export function installTrainFeatures(root,readApi) {
     const button = event.target.closest('.book-ticket');
     if (!button) return;
     const status = button.parentElement.querySelector('.booking-status');
-    status.textContent = `${button.dataset.bookName} selected. This is a demo booking; payment and real ticket confirmation are not available yet.`;
-    button.textContent = 'Selected for booking';
-    button.disabled = true;
+    const form = button.parentElement.querySelector('.booking-form');
+    form.hidden = false;
+    status.textContent = `Enter passenger details for ${button.dataset.bookName}.`;
+    button.hidden = true;
+    form.elements.passengerName.focus();
+  });
+
+  root.addEventListener('submit',event => {
+    const form = event.target;
+    if (!form.matches('.booking-form')) return;
+    event.preventDefault();
+    const name = form.elements.passengerName.value.trim();
+    const age = Number(form.elements.age.value);
+    const gender = form.elements.gender.value;
+    if (!name || !Number.isInteger(age) || age < 1 || age > 120 || !gender) return;
+    const pnr = `D${String(Date.now()).slice(-7)}${Math.floor(Math.random()*10)}`;
+    const action = form.closest('.booking-action');
+    action.querySelector('.booking-status').textContent = `Demo booking confirmed for ${name}. Demo PNR: ${pnr}. No payment was taken and no real ticket was created.`;
+    form.hidden = true;
   });
 
   root.addEventListener('toggle',async event => {
