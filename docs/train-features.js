@@ -1,12 +1,19 @@
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+const bookingStoreKey='railway-demo-bookings-v1';
+const initialTickets=number=>{let total=0;for(const character of String(number))total=(total*31)+character.charCodeAt(0);return 30+(Math.abs(total)%61);};
+const bookedTickets=number=>{try{return JSON.parse(localStorage.getItem(bookingStoreKey)||'{}')[number]||0;}catch{return 0;}};
+const availableTickets=number=>Math.max(0,initialTickets(number)-bookedTickets(number));
+const saveBookedTickets=(number,count)=>{try{const bookings=JSON.parse(localStorage.getItem(bookingStoreKey)||'{}');bookings[number]=(bookings[number]||0)+count;localStorage.setItem(bookingStoreKey,JSON.stringify(bookings));}catch{}};
+const refreshAvailability=number=>document.querySelectorAll(`[data-ticket-availability="${CSS.escape(String(number))}"]`).forEach(item=>item.textContent=`Available tickets: ${availableTickets(number)}`);
 export function formatFare(paise,currency='INR') {
   if (!Number.isSafeInteger(paise) || paise < 0) throw new Error('Invalid fare amount.');
   return new Intl.NumberFormat('en-IN',{style:'currency',currency}).format(paise/100);
 }
 export function renderExtras(train) {
   const number = escapeHtml(train.number);
+  const available = availableTickets(train.number);
   return `<div class="train-features">
-    <div class="booking-action"><button type="button" class="book-ticket" data-book-train="${number}" data-book-name="${escapeHtml(train.name)}">Book ticket</button><p class="booking-status" role="status" aria-live="polite"></p>
+    <div class="booking-action"><button type="button" class="book-ticket" data-book-train="${number}" data-book-name="${escapeHtml(train.name)}" ${available===0?'disabled':''}>${available===0?'Sold out':'Book ticket'}</button><span class="ticket-availability" data-ticket-availability="${number}">Available tickets: ${available}</span><p class="booking-status" role="status" aria-live="polite"></p>
       <form class="booking-form" data-book-train="${number}" data-book-name="${escapeHtml(train.name)}" hidden style="display:none">
         <div class="passenger-list"><div class="passenger-row"><label>Passenger name<input name="passengerName" autocomplete="name" required maxlength="60" placeholder="Enter full name"></label><label>Age<input name="age" type="number" min="1" max="120" required></label><label>Gender<select name="gender" required><option value="">Select</option><option>Female</option><option>Male</option><option>Other</option></select></label></div></div>
         <label>Travel class<select name="travelClass"><option>Sleeper (SL)</option><option>AC 3 Tier (3A)</option><option>AC 2 Tier (2A)</option><option>Chair Car (CC)</option></select></label>
@@ -39,6 +46,10 @@ export function installTrainFeatures(root,readApi) {
     if (passengers.some(passenger=>!passenger.name||!Number.isInteger(passenger.age)||passenger.age<1||passenger.age>120||!passenger.gender)) return;
     const pnr = `D${String(Date.now()).slice(-7)}${Math.floor(Math.random()*10)}`;
     const action = form.closest('.booking-action');
+    const available=availableTickets(form.dataset.bookTrain);
+    if(passengers.length>available){action.querySelector('.booking-status').textContent=`Only ${available} ticket${available===1?'':'s'} are available for this demo train.`;return;}
+    saveBookedTickets(form.dataset.bookTrain,passengers.length);
+    refreshAvailability(form.dataset.bookTrain);
     action.querySelector('.booking-status').textContent = `Demo booking confirmed for ${passengers.length} passenger${passengers.length===1?'':'s'}. Demo PNR: ${pnr}. No payment was taken and no real ticket was created.`;
     form.hidden = true;
     form.style.display = 'none';
