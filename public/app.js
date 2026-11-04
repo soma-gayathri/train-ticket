@@ -15,6 +15,8 @@ let searchSequence=0,controller;
 const $=id=>document.getElementById(id);
 // Always begin with a fresh route instead of restoring the last searched stations.
 $('from').value='';$('to').value='';
+// Do not show an empty connecting-journey section when no connection exists.
+new MutationObserver(()=>{$('results').querySelectorAll('.connections-panel:has(.connection-note)').forEach(panel=>panel.remove());const emptyMessage=$('results').querySelector('.empty p');if(emptyMessage)emptyMessage.textContent='Try different stations or swap your stations.';}).observe($('results'),{childList:true,subtree:true});
 let current=[],returnCurrent=[],returnJourney=null,connectingState=null;
 const connectionHubs=['NDLS','BCT','MAS','HYB','SBC','BZA'];
 const minutesFromTime=time=>{const [hours,minutes]=String(time||'').split(':').map(Number);return Number.isInteger(hours)&&Number.isInteger(minutes)?(hours*60)+minutes:null;};
