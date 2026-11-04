@@ -13,7 +13,6 @@ const escapeHtml=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<
 async function readApi(url,signal){if(globalThis.railwayDataSource)return globalThis.railwayDataSource(url,signal);const response=await fetch(url,{signal,cache:'no-store'});const data=await response.json();if(!response.ok)throw new Error(data.error||'Could not load schedules. Please try again.');return data;}
 let searchSequence=0,controller;
 const $=id=>document.getElementById(id);
-const visibleSearchButton=document.createElement('button');visibleSearchButton.type='submit';visibleSearchButton.setAttribute('form','search-form');visibleSearchButton.className='visible-search-button';visibleSearchButton.innerHTML='Search trains <span aria-hidden="true">↗</span>';document.querySelector('.search-bottom').before(visibleSearchButton);
 let current=[],returnCurrent=[],returnJourney=null,connectingState=null;
 const connectionHubs=['NDLS','BCT','MAS','HYB','SBC','BZA'];
 const minutesFromTime=time=>{const [hours,minutes]=String(time||'').split(':').map(Number);return Number.isInteger(hours)&&Number.isInteger(minutes)?(hours*60)+minutes:null;};
