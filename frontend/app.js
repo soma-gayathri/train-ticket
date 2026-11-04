@@ -13,6 +13,8 @@ const escapeHtml=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<
 async function readApi(url,signal){if(globalThis.railwayDataSource)return globalThis.railwayDataSource(url,signal);const response=await fetch(url,{signal,cache:'no-store'});const data=await response.json();if(!response.ok)throw new Error(data.error||'Could not load schedules. Please try again.');return data;}
 let searchSequence=0,controller;
 const $=id=>document.getElementById(id);
+// Always begin with a fresh route instead of restoring the last searched stations.
+$('from').value='';$('to').value='';
 const visibleSearchButton=document.createElement('button');visibleSearchButton.type='submit';visibleSearchButton.setAttribute('form','search-form');visibleSearchButton.className='visible-search-button';visibleSearchButton.innerHTML='Search trains <span aria-hidden="true">↗</span>';document.querySelector('.search-bottom').before(visibleSearchButton);
 let current=[],returnCurrent=[],returnJourney=null,connectingState=null;
 const connectionHubs=['NDLS','BCT','MAS','HYB','SBC','BZA'];
@@ -49,7 +51,7 @@ $('results').addEventListener('click',async event=>{const button=event.target.cl
 document.querySelectorAll('[data-route]').forEach(button=>button.addEventListener('click',()=>{if(!stations.length){initialize();return;}const [from,to]=button.dataset.route.split(',');$('from').value=stationLabel(from);$('to').value=stationLabel(to);search();}));
 async function initialize(){
  $('results-count').textContent='Loading stations…';
- try{const [data,module,featureModule]=await Promise.all([readApi('/api/stations'),autocompleteReady,featuresReady]);stations=data.stations;autocomplete=module;features=featureModule;if(!stationPickers.length){stationPickers=['from','to'].map(id=>autocomplete.attachStationAutocomplete($(id),()=>stations,()=>{$('form-error').hidden=true;}));$('stations')?.remove();features.installTrainFeatures($('results'),readApi);}await search();}
+ try{const [data,module,featureModule]=await Promise.all([readApi('/api/stations'),autocompleteReady,featuresReady]);stations=data.stations;autocomplete=module;features=featureModule;if(!stationPickers.length){stationPickers=['from','to'].map(id=>autocomplete.attachStationAutocomplete($(id),()=>stations,()=>{$('form-error').hidden=true;}));$('stations')?.remove();features.installTrainFeatures($('results'),readApi);}$('results-count').textContent='Choose a departure and destination station to search trains.';}
  catch(error){$('results-count').textContent='Station data could not be loaded.';$('form-error').textContent=error.message+' Use Search trains to retry.';$('form-error').hidden=false;}
 }
 initialize();
