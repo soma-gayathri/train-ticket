@@ -10,17 +10,22 @@ export function formatFare(paise,currency='INR') {
   if (!Number.isSafeInteger(paise) || paise < 0) throw new Error('Invalid fare amount.');
   return new Intl.NumberFormat('en-IN',{style:'currency',currency}).format(paise/100);
 }
-export function renderExtras(train) {
+export function renderBooking(train) {
   const number = escapeHtml(train.number);
   const available = availableTickets(train.number);
-  return `<div class="train-features">
-    <div class="booking-action"><button type="button" class="book-ticket" data-book-train="${number}" data-book-name="${escapeHtml(train.name)}" ${available===0?'disabled':''}>${available===0?'Full':'Book ticket'}</button><span class="ticket-availability ${available===0?'ticket-full':''}" data-ticket-availability="${number}">${availabilityText(train.number)}</span><p class="booking-status" role="status" aria-live="polite"></p>
+  const label = escapeHtml(train.bookingLabel || 'Book ticket');
+  return `<div class="booking-action"><button type="button" class="book-ticket" data-book-train="${number}" data-book-name="${escapeHtml(train.name)}" ${available===0?'disabled':''}>${available===0?'Full':label}</button><span class="ticket-availability ${available===0?'ticket-full':''}" data-ticket-availability="${number}">${availabilityText(train.number)}</span><p class="booking-status" role="status" aria-live="polite"></p>
       <form class="booking-form" data-book-train="${number}" data-book-name="${escapeHtml(train.name)}" hidden>
         <p class="booking-form-title">Passenger details <small>Demo only — do not enter real ID or payment information.</small></p>
         <div class="passenger-list"><div class="passenger-row"><label>Passenger name<input name="passengerName" autocomplete="name" required maxlength="60" placeholder="Enter full name"></label><label>Age<input name="age" type="number" min="1" max="120" required placeholder="Age"></label><label>Gender<select name="gender" required><option value="">Select</option><option>Female</option><option>Male</option><option>Other</option></select></label><label>Berth preference<select name="berth"><option>No preference</option><option>Lower</option><option>Middle</option><option>Upper</option><option>Side lower</option><option>Side upper</option></select></label></div></div>
         <label>Travel class<select name="travelClass"><option>Sleeper (SL)</option><option>AC 3 Tier (3A)</option><option>AC 2 Tier (2A)</option><option>Chair Car (CC)</option></select></label>
         <div class="booking-form-actions"><button type="button" class="add-passenger">+ Add passenger</button><button type="button" class="cancel-booking">Cancel</button><button type="submit">Confirm demo booking</button></div>
-      </form></div>
+      </form></div>`;
+}
+export function renderExtras(train) {
+  const number = escapeHtml(train.number);
+  return `<div class="train-features">
+    ${renderBooking(train)}
     <details data-feature="details" data-number="${number}"><summary>Train details</summary><div class="feature-content" aria-live="polite"></div></details>
     <details data-feature="schedule" data-number="${number}"><summary>Full train schedule</summary><div class="feature-content" aria-live="polite"></div></details>
   </div>`;
