@@ -22,7 +22,7 @@ export function renderBooking(train) {
         <p class="booking-form-title">Passenger details <small>Demo only — do not enter real ID or payment information.</small></p>
         <div class="passenger-list"><div class="passenger-row"><label>Passenger name<input name="passengerName" autocomplete="name" required maxlength="60" placeholder="Enter full name"></label><label>Age<input name="age" type="number" min="1" max="120" required placeholder="Age"></label><label>Gender<select name="gender" required><option value="">Select</option><option>Female</option><option>Male</option><option>Other</option></select></label><label>Berth preference<select name="berth"><option>No preference</option><option>Lower</option><option>Middle</option><option>Upper</option><option>Side lower</option><option>Side upper</option></select></label></div></div>
         <label>Travel class<select name="travelClass"><option>Sleeper (SL)</option><option>AC 3 Tier (3A)</option><option>AC 2 Tier (2A)</option><option>Chair Car (CC)</option></select></label>
-        <div class="booking-form-actions"><button type="button" class="add-passenger">+ Add passenger</button><button type="button" class="cancel-booking">Cancel</button><button type="submit">Book ticket</button></div>
+        <div class="booking-form-actions"><button type="button" class="add-passenger">+ Add passenger</button><button type="button" class="cancel-booking">Cancel</button><button type="submit" name="bookingAction" value="price" class="calculate-price">Calculate price</button><button type="submit" name="bookingAction" value="book">Book ticket</button></div>
       </form><section class="payment-review" hidden aria-live="polite"><p class="payment-summary"></p><p class="payment-disclaimer">Illustrative demo price only. This is not an IRCTC fare and no real payment will be collected.</p><div class="booking-form-actions"><button type="button" class="confirm-demo-payment">Yes, pay &amp; book</button><button type="button" class="cancel-demo-payment">No, go back</button></div></section></div>`;
 }
 export function renderExtras(train) {
@@ -60,6 +60,10 @@ export function installTrainFeatures(root,readApi) {
     const available=availableTickets(form.dataset.bookTrain);
     if(passengers.length>available){action.querySelector('.booking-status').textContent=`Only ${available} ticket${available===1?'':'s'} are available for this demo train.`;return;}
     const quote=calculateDemoFare(form.dataset.bookDuration,form.elements.travelClass.value,passengers.length);
+    if(event.submitter?.value==='price'){
+      action.querySelector('.booking-status').textContent=`Demo price for ${passengers.length} passenger${passengers.length===1?'':'s'}: ${rupees(quote.total)}. This is illustrative only; no ticket has been booked.`;
+      return;
+    }
     form.hidden = true;
     form.dataset.pendingPassengers=String(passengers.length);form.dataset.pendingTotal=String(quote.total);
     const review=action.querySelector('.payment-review');review.querySelector('.payment-summary').textContent=`${passengers.length} passenger${passengers.length===1?'':'s'} · ${form.elements.travelClass.value} · estimated ${quote.estimatedKm} km · ticket ${rupees(quote.ticket)} each + reservation ${rupees(quote.reservation)}${quote.gst?` + GST ${rupees(quote.gst)}`:''} · Total ${rupees(quote.total)}.`;review.hidden=false;
