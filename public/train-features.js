@@ -9,6 +9,7 @@ const refreshAvailability=number=>document.querySelectorAll(`[data-ticket-availa
 const fareRules={"Sleeper (SL)":{base:150,perKm:.5,gst:0},"AC 3 Tier (3A)":{base:450,perKm:1.1,gst:.05},"AC 2 Tier (2A)":{base:650,perKm:1.6,gst:.05},"Chair Car (CC)":{base:250,perKm:.75,gst:.05}};
 const calculateDemoFare=(duration,travelClass,passengers)=>{const rule=fareRules[travelClass]||fareRules['Sleeper (SL)'];const estimatedKm=Math.max(120,Math.round(Number(duration||600)*55));const ticket=Math.round(rule.base+(estimatedKm*rule.perKm));const reservation=20*passengers;const subtotal=ticket*passengers;const gst=Math.round(subtotal*rule.gst);return {estimatedKm,ticket,reservation,gst,total:subtotal+reservation+gst};};
 const rupees=value=>new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR',maximumFractionDigits:0}).format(value);
+const resetPassengerRows=form=>{const list=form.querySelector('.passenger-list');while(list.children.length>1)list.lastElementChild.remove();list.firstElementChild?.querySelectorAll('input,select').forEach(field=>field.value='');const addButton=form.querySelector('.add-passenger');if(addButton){addButton.disabled=false;addButton.textContent='+ Add passenger';}};
 export function formatFare(paise,currency='INR') {
   if (!Number.isSafeInteger(paise) || paise < 0) throw new Error('Invalid fare amount.');
   return new Intl.NumberFormat('en-IN',{style:'currency',currency}).format(paise/100);
@@ -44,6 +45,7 @@ export function installTrainFeatures(root,readApi) {
     if (!button) return;
     const status = button.parentElement.querySelector('.booking-status');
     const form = button.parentElement.querySelector('.booking-form');
+    resetPassengerRows(form);
     form.hidden = false;
     status.textContent = `Enter passenger details for ${button.dataset.bookName}.`;
     button.hidden = true;
@@ -76,7 +78,7 @@ export function installTrainFeatures(root,readApi) {
     const action=button.closest('.booking-action');const form=action.querySelector('.booking-form');const count=Number(form.dataset.pendingPassengers||0);const available=availableTickets(form.dataset.bookTrain);
     if(!Number.isInteger(count)||count<1||count>available){action.querySelector('.payment-review').hidden=true;form.hidden=false;action.querySelector('.booking-status').textContent=`Only ${available} ticket${available===1?'':'s'} are available now. Please review again.`;return;}
     const quotedTotal=Number(form.dataset.pendingTotal||0);saveBookedTickets(form.dataset.bookTrain,count);refreshAvailability(form.dataset.bookTrain);const remaining=availableTickets(form.dataset.bookTrain);const pnr=`D${String(Date.now()).slice(-7)}${Math.floor(Math.random()*10)}`;
-    action.querySelector('.payment-review').hidden=true;form.reset();delete form.dataset.pendingPassengers;delete form.dataset.pendingTotal;action.querySelector('.booking-status').textContent=`Demo payment approved for ${rupees(quotedTotal)}. Demo booking confirmed for ${count} passenger${count===1?'':'s'}. Demo PNR: ${pnr}. ${remaining?`${remaining} ticket${remaining===1?'':'s'} remaining.`:'This train is now full.'} No real payment was taken and no real ticket was created.`;
+    action.querySelector('.payment-review').hidden=true;form.reset();resetPassengerRows(form);delete form.dataset.pendingPassengers;delete form.dataset.pendingTotal;action.querySelector('.booking-status').textContent=`Demo payment approved for ${rupees(quotedTotal)}. Demo booking confirmed for ${count} passenger${count===1?'':'s'}. Demo PNR: ${pnr}. ${remaining?`${remaining} ticket${remaining===1?'':'s'} remaining.`:'This train is now full.'} No real payment was taken and no real ticket was created.`;
   });
 
   root.addEventListener('click',event => {
@@ -103,6 +105,7 @@ export function installTrainFeatures(root,readApi) {
     const form=button.closest('.booking-form');
     form.hidden=true;
     form.reset();
+    resetPassengerRows(form);
     const action=form.closest('.booking-action');
     action.querySelector('.book-ticket').hidden=false;
     action.querySelector('.booking-status').textContent='';
