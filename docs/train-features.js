@@ -35,6 +35,10 @@ export function renderExtras(train) {
 }
 
 export function installTrainFeatures(root,readApi) {
+  // Search can retry while stations are loading. Install these delegated
+  // handlers once, otherwise one Add passenger click creates several rows.
+  if (root.dataset.trainFeaturesInstalled === 'true') return;
+  root.dataset.trainFeaturesInstalled = 'true';
   root.addEventListener('click',event => {
     const button = event.target.closest('.book-ticket');
     if (!button) return;
