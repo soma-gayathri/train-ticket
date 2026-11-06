@@ -18,10 +18,12 @@ export function formatFare(paise,currency='INR') {
 }
 export function renderBooking(train) {
   const number = escapeHtml(train.number);
-  const available = availableTickets(train.number);
+  const travelDate = String(train.travelDate || new Date().toISOString().slice(0,10));
+  const ticketKey = `${train.number}|${travelDate}`;
+  const available = availableTickets(ticketKey);
   const label = escapeHtml(train.bookingLabel || 'Book ticket');
-  return `<div class="booking-action"><button type="button" class="book-ticket" data-book-train="${number}" data-book-name="${escapeHtml(train.name)}" ${available===0?'disabled':''}>${available===0?'Full':label}</button><span class="ticket-availability ${available===0?'ticket-full':''}" data-ticket-availability="${number}">${availabilityText(train.number)}</span><p class="booking-status" role="status" aria-live="polite"></p>
-      <form class="booking-form" data-book-train="${number}" data-book-name="${escapeHtml(train.name)}" data-book-duration="${Math.max(60,Number(train.duration||600))}" hidden>
+  return `<div class="booking-action"><button type="button" class="book-ticket" data-book-train="${number}" data-book-ticket-key="${escapeHtml(ticketKey)}" data-book-name="${escapeHtml(train.name)}" ${available===0?'disabled':''}>${available===0?'Full':label}</button><span class="ticket-availability ${available===0?'ticket-full':''}" data-ticket-availability="${escapeHtml(ticketKey)}">${availabilityText(ticketKey)}</span><p class="booking-status" role="status" aria-live="polite"></p>
+      <form class="booking-form" data-book-train="${number}" data-book-ticket-key="${escapeHtml(ticketKey)}" data-book-date="${escapeHtml(travelDate)}" data-book-name="${escapeHtml(train.name)}" data-book-duration="${Math.max(60,Number(train.duration||600))}" hidden>
         <p class="booking-form-title">Passenger details <small>Demo only — do not enter real ID or payment information.</small></p>
         <div class="passenger-list"><div class="passenger-row"><label>Passenger name<input name="passengerName" autocomplete="name" required maxlength="60" placeholder="Enter full name"></label><label>Age<input name="age" type="number" min="1" max="120" required placeholder="Age"></label><label>Gender<select name="gender" required><option value="">Select</option><option>Female</option><option>Male</option><option>Other</option></select></label><label>Berth preference<select name="berth"><option>No preference</option><option>Lower</option><option>Middle</option><option>Upper</option><option>Side lower</option><option>Side upper</option></select></label></div></div>
         <label>Travel class<select name="travelClass"><option>Sleeper (SL)</option><option>AC 3 Tier (3A)</option><option>AC 2 Tier (2A)</option><option>Chair Car (CC)</option></select></label>
@@ -61,7 +63,7 @@ export function installTrainFeatures(root,readApi) {
     const passengers=[...form.querySelectorAll('.passenger-row')].map(row=>({name:row.querySelector('[name="passengerName"]').value.trim(),age:Number(row.querySelector('[name="age"]').value),gender:row.querySelector('[name="gender"]').value,berthPreference:row.querySelector('[name="berth"]').value}));
     if (passengers.some(passenger=>!passenger.name||!Number.isInteger(passenger.age)||passenger.age<1||passenger.age>120||!passenger.gender)) return;
     const action = form.closest('.booking-action');
-    const available=availableTickets(form.dataset.bookTrain);
+    const available=availableTickets(form.dataset.bookTicketKey);
     if(passengers.length>available){action.querySelector('.booking-status').textContent=`Only ${available} ticket${available===1?'':'s'} are available for this demo train.`;return;}
     const quote=calculateDemoFare(form.dataset.bookDuration,form.elements.travelClass.value,passengers.length);
     if(event.submitter?.value==='price'){
@@ -77,13 +79,13 @@ export function installTrainFeatures(root,readApi) {
   root.addEventListener('click',async event => {
     const button=event.target.closest('.confirm-demo-payment');
     if(!button)return;
-    const action=button.closest('.booking-action');const form=action.querySelector('.booking-form');const count=Number(form.dataset.pendingPassengers||0);const available=availableTickets(form.dataset.bookTrain);
+    const action=button.closest('.booking-action');const form=action.querySelector('.booking-form');const count=Number(form.dataset.pendingPassengers||0);const available=availableTickets(form.dataset.bookTicketKey);
     if(!Number.isInteger(count)||count<1||count>available){action.querySelector('.payment-review').hidden=true;form.hidden=false;action.querySelector('.booking-status').textContent=`Only ${available} ticket${available===1?'':'s'} are available now. Please review again.`;return;}
     const quotedTotal=Number(form.dataset.pendingTotal||0);const pnr=`D${String(Date.now()).slice(-7)}${Math.floor(Math.random()*10)}`;
     let passengers=[];try{passengers=JSON.parse(form.dataset.pendingPassengerDetails||'[]');}catch{}
     try { await readApi.post('/api/bookings',{trainNumber:form.dataset.bookTrain,trainName:form.dataset.bookName,travelClass:form.elements.travelClass.value,totalAmount:quotedTotal,pnr,passengers,viewerKey:viewerKey()}); }
     catch(error){action.querySelector('.booking-status').textContent=`Booking was not saved: ${error.message}`;return;}
-    saveBookedTickets(form.dataset.bookTrain,count);refreshAvailability(form.dataset.bookTrain);const remaining=availableTickets(form.dataset.bookTrain);
+    saveBookedTickets(form.dataset.bookTicketKey,count);refreshAvailability(form.dataset.bookTicketKey);const remaining=availableTickets(form.dataset.bookTicketKey);
     action.querySelector('.payment-review').hidden=true;form.reset();resetPassengerRows(form);delete form.dataset.pendingPassengers;delete form.dataset.pendingTotal;delete form.dataset.pendingPassengerDetails;action.querySelector('.booking-status').textContent=`Demo payment approved for ${rupees(quotedTotal)}. Demo booking confirmed for ${count} passenger${count===1?'':'s'}. Demo PNR: ${pnr}. ${remaining?`${remaining} ticket${remaining===1?'':'s'} remaining.`:'This train is now full.'} Passenger details were saved in the demo database. No real payment was taken and no real ticket was created.`;
   });
 
