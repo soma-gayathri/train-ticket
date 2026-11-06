@@ -6,14 +6,14 @@ export function createApiDataSource(baseUrl='', fetchImpl=globalThis.fetch) {
     if (!['http:','https:'].includes(parsed.protocol) || parsed.username || parsed.password || parsed.search || parsed.hash) throw new Error('Use a plain HTTP(S) backend URL without credentials, query parameters, or a fragment.');
     if (globalThis.location?.protocol === 'https:' && parsed.protocol !== 'https:') throw new Error('This HTTPS website requires an HTTPS backend URL.');
   }
-  return async (path,signal) => {
+  const request = async (path,signal,options={}) => {
     if (!path.startsWith('/api/')) throw new Error('Only railway API paths are supported.');
     const controller = new AbortController();
     const abort = () => controller.abort();
     if (signal?.aborted) abort(); else signal?.addEventListener('abort',abort,{once:true});
     const timer = setTimeout(abort,15000);
     try {
-      const response = await fetchImpl(base+path,{signal:controller.signal,cache:'no-store',headers:{Accept:'application/json','ngrok-skip-browser-warning':'true'}});
+      const response = await fetchImpl(base+path,{signal:controller.signal,cache:'no-store',method:options.method || 'GET',headers:{Accept:'application/json','ngrok-skip-browser-warning':'true',...(options.body ? {'Content-Type':'application/json'} : {})},body:options.body ? JSON.stringify(options.body) : undefined});
       let data;
       try { data = await response.json(); } catch { throw new Error('The backend did not return valid JSON. Check the API base URL.'); }
       if (!response.ok) throw new Error(data.error || data.detail || `Backend request failed (${response.status}).`);
@@ -25,4 +25,6 @@ export function createApiDataSource(baseUrl='', fetchImpl=globalThis.fetch) {
       throw error;
     } finally { clearTimeout(timer); signal?.removeEventListener('abort',abort); }
   };
+  request.post = (path, body, signal) => request(path, signal, { method: 'POST', body });
+  return request;
 }

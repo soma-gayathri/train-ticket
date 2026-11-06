@@ -1,5 +1,7 @@
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
 const bookingStoreKey='railway-demo-bookings-v1';
+const bookingViewerKey='railway-demo-viewer-key';
+const viewerKey=()=>{let key=localStorage.getItem(bookingViewerKey);if(!key){key=crypto.randomUUID();localStorage.setItem(bookingViewerKey,key);}return key;};
 const initialTickets=number=>{let total=0;for(const character of String(number))total=(total*31)+character.charCodeAt(0);return 30+(Math.abs(total)%61);};
 const bookedTickets=number=>{try{return JSON.parse(localStorage.getItem(bookingStoreKey)||'{}')[number]||0;}catch{return 0;}};
 const availableTickets=number=>Math.max(0,initialTickets(number)-bookedTickets(number));
@@ -56,7 +58,7 @@ export function installTrainFeatures(root,readApi) {
     const form = event.target;
     if (!form.matches('.booking-form')) return;
     event.preventDefault();
-    const passengers=[...form.querySelectorAll('.passenger-row')].map(row=>({name:row.querySelector('[name="passengerName"]').value.trim(),age:Number(row.querySelector('[name="age"]').value),gender:row.querySelector('[name="gender"]').value}));
+    const passengers=[...form.querySelectorAll('.passenger-row')].map(row=>({name:row.querySelector('[name="passengerName"]').value.trim(),age:Number(row.querySelector('[name="age"]').value),gender:row.querySelector('[name="gender"]').value,berthPreference:row.querySelector('[name="berth"]').value}));
     if (passengers.some(passenger=>!passenger.name||!Number.isInteger(passenger.age)||passenger.age<1||passenger.age>120||!passenger.gender)) return;
     const action = form.closest('.booking-action');
     const available=availableTickets(form.dataset.bookTrain);
@@ -67,18 +69,22 @@ export function installTrainFeatures(root,readApi) {
       return;
     }
     form.hidden = true;
-    form.dataset.pendingPassengers=String(passengers.length);form.dataset.pendingTotal=String(quote.total);
+    form.dataset.pendingPassengers=String(passengers.length);form.dataset.pendingTotal=String(quote.total);form.dataset.pendingPassengerDetails=JSON.stringify(passengers);
     const review=action.querySelector('.payment-review');review.querySelector('.payment-summary').textContent=`${passengers.length} passenger${passengers.length===1?'':'s'} · ${form.elements.travelClass.value} · estimated ${quote.estimatedKm} km · ticket ${rupees(quote.ticket)} each + reservation ${rupees(quote.reservation)}${quote.gst?` + GST ${rupees(quote.gst)}`:''} · Total ${rupees(quote.total)}.`;review.hidden=false;
     action.querySelector('.booking-status').textContent='Review the illustrative price, then choose Yes to confirm the demo booking.';
   });
 
-  root.addEventListener('click',event => {
+  root.addEventListener('click',async event => {
     const button=event.target.closest('.confirm-demo-payment');
     if(!button)return;
     const action=button.closest('.booking-action');const form=action.querySelector('.booking-form');const count=Number(form.dataset.pendingPassengers||0);const available=availableTickets(form.dataset.bookTrain);
     if(!Number.isInteger(count)||count<1||count>available){action.querySelector('.payment-review').hidden=true;form.hidden=false;action.querySelector('.booking-status').textContent=`Only ${available} ticket${available===1?'':'s'} are available now. Please review again.`;return;}
-    const quotedTotal=Number(form.dataset.pendingTotal||0);saveBookedTickets(form.dataset.bookTrain,count);refreshAvailability(form.dataset.bookTrain);const remaining=availableTickets(form.dataset.bookTrain);const pnr=`D${String(Date.now()).slice(-7)}${Math.floor(Math.random()*10)}`;
-    action.querySelector('.payment-review').hidden=true;form.reset();resetPassengerRows(form);delete form.dataset.pendingPassengers;delete form.dataset.pendingTotal;action.querySelector('.booking-status').textContent=`Demo payment approved for ${rupees(quotedTotal)}. Demo booking confirmed for ${count} passenger${count===1?'':'s'}. Demo PNR: ${pnr}. ${remaining?`${remaining} ticket${remaining===1?'':'s'} remaining.`:'This train is now full.'} No real payment was taken and no real ticket was created.`;
+    const quotedTotal=Number(form.dataset.pendingTotal||0);const pnr=`D${String(Date.now()).slice(-7)}${Math.floor(Math.random()*10)}`;
+    let passengers=[];try{passengers=JSON.parse(form.dataset.pendingPassengerDetails||'[]');}catch{}
+    try { await readApi.post('/api/bookings',{trainNumber:form.dataset.bookTrain,trainName:form.dataset.bookName,travelClass:form.elements.travelClass.value,totalAmount:quotedTotal,pnr,passengers,viewerKey:viewerKey()}); }
+    catch(error){action.querySelector('.booking-status').textContent=`Booking was not saved: ${error.message}`;return;}
+    saveBookedTickets(form.dataset.bookTrain,count);refreshAvailability(form.dataset.bookTrain);const remaining=availableTickets(form.dataset.bookTrain);
+    action.querySelector('.payment-review').hidden=true;form.reset();resetPassengerRows(form);delete form.dataset.pendingPassengers;delete form.dataset.pendingTotal;delete form.dataset.pendingPassengerDetails;action.querySelector('.booking-status').textContent=`Demo payment approved for ${rupees(quotedTotal)}. Demo booking confirmed for ${count} passenger${count===1?'':'s'}. Demo PNR: ${pnr}. ${remaining?`${remaining} ticket${remaining===1?'':'s'} remaining.`:'This train is now full.'} Passenger details were saved in the demo database. No real payment was taken and no real ticket was created.`;
   });
 
   root.addEventListener('click',event => {
