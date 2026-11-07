@@ -50,6 +50,7 @@ export function installTrainFeatures(root,readApi) {
     const status = button.parentElement.querySelector('.booking-status');
     const form = button.parentElement.querySelector('.booking-form');
     resetPassengerRows(form);
+    button.parentElement.classList.add('booking-page-open');
     form.hidden = false;
     status.textContent = `Enter passenger details for ${button.dataset.bookName}.`;
     button.hidden = true;
@@ -86,7 +87,7 @@ export function installTrainFeatures(root,readApi) {
     try { await readApi.post('/api/bookings',{trainNumber:form.dataset.bookTrain,trainName:form.dataset.bookName,fromStation:form.dataset.bookFrom,toStation:form.dataset.bookTo,travelDate:form.dataset.bookDate,travelClass:form.elements.travelClass.value,totalAmount:quotedTotal,pnr,passengers,viewerKey:viewerKey()}); }
     catch(error){action.querySelector('.booking-status').textContent=`Booking was not saved: ${error.message}`;return;}
     saveBookedTickets(form.dataset.bookTicketKey,count);refreshAvailability(form.dataset.bookTicketKey);const remaining=availableTickets(form.dataset.bookTicketKey);
-    action.querySelector('.payment-review').hidden=true;form.reset();resetPassengerRows(form);delete form.dataset.pendingPassengers;delete form.dataset.pendingTotal;delete form.dataset.pendingPassengerDetails;action.querySelector('.booking-status').textContent=`Demo payment approved for ${rupees(quotedTotal)}. Demo booking confirmed for ${count} passenger${count===1?'':'s'}. Demo PNR: ${pnr}. ${remaining?`${remaining} ticket${remaining===1?'':'s'} remaining.`:'This train is now full.'} Passenger details were saved in the demo database. No real payment was taken and no real ticket was created.`;
+    action.querySelector('.payment-review').hidden=true;form.reset();resetPassengerRows(form);action.classList.remove('booking-page-open');delete form.dataset.pendingPassengers;delete form.dataset.pendingTotal;delete form.dataset.pendingPassengerDetails;action.querySelector('.booking-status').textContent=`Demo payment approved for ${rupees(quotedTotal)}. Demo booking confirmed for ${count} passenger${count===1?'':'s'}. Demo PNR: ${pnr}. ${remaining?`${remaining} ticket${remaining===1?'':'s'} remaining.`:'This train is now full.'} Passenger details were saved in the demo database. No real payment was taken and no real ticket was created.`;
   });
 
   root.addEventListener('click',event => {
@@ -115,6 +116,7 @@ export function installTrainFeatures(root,readApi) {
     form.reset();
     resetPassengerRows(form);
     const action=form.closest('.booking-action');
+    action.classList.remove('booking-page-open');
     action.querySelector('.book-ticket').hidden=false;
     action.querySelector('.booking-status').textContent='';
   });
