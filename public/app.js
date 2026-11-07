@@ -11,6 +11,7 @@ function validateSearch(a,b,travelDate,tripType,returnDate){if(!a.trim()||!b.tri
 const formatDuration=value=>`${Math.floor(value/60)}h ${String(value%60).padStart(2,'0')}m`;
 const escapeHtml=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 async function readApi(url,signal){if(globalThis.railwayDataSource)return globalThis.railwayDataSource(url,signal);const response=await fetch(url,{signal,cache:'no-store'});const data=await response.json();if(!response.ok)throw new Error(data.error||'Could not load schedules. Please try again.');return data;}
+readApi.post=async(url,body,signal)=>{if(globalThis.railwayDataSource?.post)return globalThis.railwayDataSource.post(url,body,signal);const response=await fetch(url,{method:'POST',signal,cache:'no-store',headers:{Accept:'application/json','Content-Type':'application/json'},body:JSON.stringify(body)});const data=await response.json();if(!response.ok)throw new Error(data.error||'Could not save the demo booking.');return data;};
 let searchSequence=0,controller;
 const $=id=>document.getElementById(id);
 // Always begin with a fresh route instead of restoring the last searched stations.
