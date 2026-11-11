@@ -38,6 +38,7 @@ await concurrent(catalog.services, 12, async service => {
   const from = schedule.stops[0].code;
   const to = schedule.stops.at(-1).code;
   const fare = await api(`/api/trains/${encodeURIComponent(service.number)}/fare?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&travelClass=SL&passengers=1`);
+  assert.ok(Number.isInteger(fare.estimatedDistanceKm) && fare.estimatedDistanceKm > 0, "Fare needs a positive route distance.");
   assert.ok(Number.isInteger(fare.totalFarePaise) && fare.totalFarePaise > 0, "Fare must be a positive paise amount.");
   checked += 1;
 });

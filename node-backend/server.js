@@ -93,12 +93,13 @@ function loadRailpullSchedules() {
         const code = String(stop.code || "").trim().toUpperCase();
         const name = String(stop.name || code).trim();
         if (code) stations.set(code, { code, name });
-        return { order: Number(stop.seq) || index + 1, code, arrival: cleanRailpullTime(stop.arr), departure: cleanRailpullTime(stop.dep), arrivalDay: Math.max(0, Number(stop.day || 1) - 1), departureDay: Math.max(0, Number(stop.day || 1) - 1) };
+        const distanceKm = Number(stop.distance_km);
+        return { order: Number(stop.seq) || index + 1, code, arrival: cleanRailpullTime(stop.arr), departure: cleanRailpullTime(stop.dep), arrivalDay: Math.max(0, Number(stop.day || 1) - 1), departureDay: Math.max(0, Number(stop.day || 1) - 1), distanceKm: Number.isFinite(distanceKm) ? distanceKm : null };
       }).filter(stop => stop.code)
     })).filter(train => train.stops.length >= 2);
     if (!trains.length) return null;
     const directory = [...stations.values()].sort((a, b) => a.name.localeCompare(b.name));
-    return { stations: directory, trains, stationByCode: new Map(directory.map(station => [station.code, station])), source: "railpull" };
+    return { stations: directory, trains, stationByCode: new Map(directory.map(station => [station.code, station])), source: "railway-demo-api" };
   } catch (error) {
     console.warn("Railpull timetable file could not be read; using sample schedules.", error.message);
     return null;
@@ -142,7 +143,7 @@ function createDemoServices(base, targetCount = 552) {
     trains.push({ number, name: `${template.name} Demo Service ${generated + 1}`, type: categories[generated % categories.length], stops });
     generated += 1;
   }
-  return { ...base, trains, source: `${base.source}-demo-${targetCount}` };
+  return { ...base, trains, source: "railway-demo-api" };
 }
 const schedules = createDemoServices(loadSchedules());
 const majorStationNames = new Map([
@@ -161,10 +162,10 @@ const majorStationNames = new Map([
 ]);
 const majorStations = [...majorStationNames].map(([code, name]) => schedules.stationByCode.has(code) ? { code, name } : null).filter(Boolean);
 const fareRules = {
-  SL: { base: 9000, perKm: 32 },
-  "3A": { base: 30000, perKm: 70 },
-  "2A": { base: 45000, perKm: 105 },
-  CC: { base: 18000, perKm: 45 }
+  SL: { base: 4000, perKm: 45, minimum: 15000 },
+  "3A": { base: 15000, perKm: 95, minimum: 50000 },
+  "2A": { base: 25000, perKm: 145, minimum: 80000 },
+  CC: { base: 13000, perKm: 62, minimum: 25000 }
 };
 const railRadarApiKey = process.env.USE_RAILRADAR === "true" ? process.env.RAILRADAR_API_KEY : "";
 let railRadarStations;
@@ -194,6 +195,34 @@ const cityTerminals = [
   ["PUNE"], ["JP"], ["ADI"], ["BZA"]
 ];
 function matchingTerminals(code) { return cityTerminals.find(group => group.includes(code)) || [code]; }
+// Coordinates are used only to calculate a believable rail-route estimate for the
+// major cities in the selector.  Indian rail routes are normally longer than the
+// straight-line distance, so the result applies a conservative rail-path factor.
+// It deliberately does not claim to be the official IRCTC distance.
+const stationCoordinates = new Map([
+  ["NDLS", [28.643, 77.219]], ["MMCT", [18.969, 72.819]], ["CSMT", [18.940, 72.835]],
+  ["MAS", [13.083, 80.276]], ["SBC", [12.977, 77.571]], ["YPR", [13.028, 77.550]],
+  ["HYB", [17.385, 78.487]], ["SC", [17.439, 78.499]], ["HWH", [22.583, 88.343]],
+  ["PUNE", [18.528, 73.874]], ["JP", [26.919, 75.788]], ["ADI", [23.027, 72.601]],
+  ["BZA", [16.509, 80.646]], ["VSKP", [17.724, 83.302]], ["BPL", [23.259, 77.413]],
+  ["NGP", [21.146, 79.089]], ["CNB", [26.452, 80.350]], ["BBS", [20.264, 85.844]],
+  ["TVC", [8.488, 76.953]], ["MYS", [12.316, 76.655]], ["ASR", [31.634, 74.872]],
+  ["BRC", [22.309, 73.181]], ["BSP", [22.080, 82.139]], ["GAYA", [24.797, 85.007]],
+  ["GHY", [26.180, 91.750]], ["GTL", [15.171, 77.374]], ["JAT", [32.707, 74.879]],
+  ["KOTA", [25.213, 75.864]], ["MTJ", [27.492, 77.673]], ["NJP", [26.680, 88.432]],
+  ["ST", [21.206, 72.840]], ["TATA", [22.761, 86.199]], ["UBL", [15.364, 75.124]],
+  ["UJN", [23.182, 75.784]], ["CBE", [11.001, 76.967]]
+]);
+function cityAnchor(code) { return cityTerminals.find(group => group.includes(code))?.[0] || code; }
+function railwayDistanceEstimate(from, to, fallbackKm) {
+  const start = stationCoordinates.get(cityAnchor(from)); const end = stationCoordinates.get(cityAnchor(to));
+  if (!start || !end) return fallbackKm;
+  const radians = degrees => degrees * Math.PI / 180;
+  const [lat1, lon1] = start; const [lat2, lon2] = end;
+  const a = Math.sin(radians(lat2 - lat1) / 2) ** 2 + Math.cos(radians(lat1)) * Math.cos(radians(lat2)) * Math.sin(radians(lon2 - lon1) / 2) ** 2;
+  const straightLineKm = 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return Math.max(90, Math.round((straightLineKm * 1.28) + 15));
+}
 function journey(train, from, to) {
   const fromCodes = matchingTerminals(from); const toCodes = matchingTerminals(to);
   const start = train.stops.findIndex(stop => fromCodes.includes(stop.code));
@@ -203,7 +232,9 @@ function journey(train, from, to) {
   if (!departure.departure || !arrival.arrival) return null;
   const fullSegment = train.stops.slice(start, end + 1).map(fullStop);
   const segment = fullSegment.filter((stop, index) => index === 0 || index === fullSegment.length - 1 || majorStationNames.has(stop.code));
-  return { number: train.number, name: train.name, type: train.type, departure: fullStop(departure), arrival: fullStop(arrival), segment, duration: minutesAt(arrival.arrival, arrival.arrivalDay) - minutesAt(departure.departure, departure.departureDay), dayDifference: arrival.arrivalDay - departure.departureDay };
+  const fallbackDistanceKm = Math.max(110, (fullSegment.length - 1) * 65);
+  const distanceKm = railwayDistanceEstimate(from, to, fallbackDistanceKm);
+  return { number: train.number, name: train.name, type: train.type, departure: fullStop(departure), arrival: fullStop(arrival), segment, distanceKm, duration: minutesAt(arrival.arrival, arrival.arrivalDay) - minutesAt(departure.departure, departure.departureDay), dayDifference: arrival.arrivalDay - departure.departureDay };
 }
 
 app.get("/api/health", (req, res) => res.json({ ok: true, backend: "Express", dataSource: schedules.source }));
@@ -224,7 +255,7 @@ app.post("/api/auth/logout", (req, res) => { clearSession(req, res); res.status(
 app.get("/api/stations", async (req, res) => {
   const query = String(req.query.query || "").trim().toLowerCase();
   try {
-    const useRailRadar = railRadarApiKey && !schedules.source.startsWith("railpull");
+    const useRailRadar = Boolean(railRadarApiKey);
     const directory = useRailRadar ? await liveStations() : (req.query.all === "true" ? schedules.stations : majorStations);
     const stations = !query ? directory : directory.filter(station => station.code.toLowerCase().includes(query) || station.name.toLowerCase().includes(query));
     res.json({ stations, source: useRailRadar ? "railradar" : schedules.source });
@@ -234,7 +265,7 @@ app.get("/api/trains", async (req, res) => {
   const from = String(req.query.from || "").trim().toUpperCase(); const to = String(req.query.to || "").trim().toUpperCase();
   if (!from || !to || from === to) return res.status(400).json({ error: "Choose two different valid stations." });
   try {
-    if (railRadarApiKey && !schedules.source.startsWith("railpull")) {
+    if (railRadarApiKey) {
       const data = await railRadar(`/trains/between/${encodeURIComponent(from)}/${encodeURIComponent(to)}?byCity=true`);
       const trains = (data.trains || []).map(item => {
         const train = item.train || {}; const departure = liveStop(from, data.from?.name || from, null, item.from?.departure, item.from?.day, item.from?.day); const arrival = liveStop(to, data.to?.name || to, item.to?.arrival, null, item.to?.day, item.to?.day);
@@ -247,7 +278,7 @@ app.get("/api/trains", async (req, res) => {
   } catch (error) { res.status(502).json({ error: error.message }); }
 });
 app.get("/api/trains/:number", async (req, res) => {
-  if (railRadarApiKey && !schedules.source.startsWith("railpull")) {
+  if (railRadarApiKey) {
     try { const data = await railRadar(`/trains/${encodeURIComponent(req.params.number)}?haltsOnly=true`); const train = data.train || {}; const stops = (data.route || []).map(stop => liveStop(stop.station?.code, stop.station?.name, stop.arrival, stop.departure, stop.arrivalDay, stop.departureDay)); return res.json({ number: String(train.number), name: train.name, type: train.type || train.category, stops, source: "railradar" }); } catch (error) { return res.status(502).json({ error: error.message }); }
   }
   const train = schedules.trains.find(item => item.number === req.params.number);
@@ -255,7 +286,7 @@ app.get("/api/trains/:number", async (req, res) => {
   res.json({ number: train.number, name: train.name, type: train.type, stops: train.stops.map(fullStop) });
 });
 app.get("/api/trains/:number/schedule", async (req, res) => {
-  if (railRadarApiKey && !schedules.source.startsWith("railpull")) {
+  if (railRadarApiKey) {
     try { const data = await railRadar(`/trains/${encodeURIComponent(req.params.number)}?haltsOnly=true`); const train = data.train || {}; const stops = (data.route || []).map(stop => liveStop(stop.station?.code, stop.station?.name, stop.arrival, stop.departure, stop.arrivalDay, stop.departureDay)); return res.json({ number: String(train.number), name: train.name, type: train.type || train.category, stops, source: "railradar" }); } catch (error) { return res.status(502).json({ error: error.message }); }
   }
   const train = schedules.trains.find(item => item.number === req.params.number);
@@ -265,9 +296,9 @@ app.get("/api/trains/:number/schedule", async (req, res) => {
 app.get("/api/trains/:number/fare", (req, res) => {
   const train = schedules.trains.find(item => item.number === req.params.number); const from = String(req.query.from || "").toUpperCase(); const to = String(req.query.to || "").toUpperCase(); const rule = fareRules[req.query.travelClass]; const passengers = Number(req.query.passengers); const trip = train && journey(train, from, to);
   if (!trip || !rule || !Number.isInteger(passengers) || passengers < 1 || passengers > 6) return res.status(400).json({ error: "Choose a valid journey, class, and 1 to 6 passengers." });
-  const estimatedDistanceKm = Math.min(2500, Math.max(110, (trip.segment.length - 1) * 65));
-  const unitFarePaise = Math.round(rule.base + rule.perKm * estimatedDistanceKm);
-  res.json({ currency: "INR", passengers, estimatedDistanceKm, unitFarePaise, totalFarePaise: unitFarePaise * passengers, disclaimer: "Reasonable illustrative demo fare only; this is not an official railway fare." });
+  const estimatedDistanceKm = trip.distanceKm;
+  const unitFarePaise = Math.max(rule.minimum, Math.round(rule.base + rule.perKm * estimatedDistanceKm));
+  res.json({ currency: "INR", passengers, estimatedDistanceKm, unitFarePaise, totalFarePaise: unitFarePaise * passengers, disclaimer: "Distance-based illustrative estimate only; this is not an official IRCTC fare." });
 });
 app.get("/api/catalog", (req, res) => {
   const catalog = { trains: schedules.trains.length, stations: schedules.stations.length, dataSource: schedules.source, note: "Generated demo timetable data with illustrative fares; not live IRCTC information." };
