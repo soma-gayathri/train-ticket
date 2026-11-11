@@ -269,7 +269,11 @@ app.get("/api/trains/:number/fare", (req, res) => {
   const unitFarePaise = Math.round(rule.base + rule.perKm * estimatedDistanceKm);
   res.json({ currency: "INR", passengers, estimatedDistanceKm, unitFarePaise, totalFarePaise: unitFarePaise * passengers, disclaimer: "Reasonable illustrative demo fare only; this is not an official railway fare." });
 });
-app.get("/api/catalog", (req, res) => res.json({ trains: schedules.trains.length, stations: schedules.stations.length, dataSource: schedules.source, note: "Generated demo timetable data with illustrative fares; not live IRCTC information." }));
+app.get("/api/catalog", (req, res) => {
+  const catalog = { trains: schedules.trains.length, stations: schedules.stations.length, dataSource: schedules.source, note: "Generated demo timetable data with illustrative fares; not live IRCTC information." };
+  if (req.query.includeTrains === "true") catalog.services = schedules.trains.map(train => ({ number: train.number, name: train.name, type: train.type }));
+  res.json(catalog);
+});
 app.post("/api/bookings", (req, res) => {
   const trainNumber = String(req.body?.trainNumber || "").trim();
   const trainName = String(req.body?.trainName || "").trim();
