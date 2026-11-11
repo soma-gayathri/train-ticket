@@ -152,7 +152,12 @@ const majorStationNames = new Map([
   ["JP", "Jaipur"], ["ADI", "Ahmedabad"], ["BZA", "Vijayawada"],
   ["VSKP", "Visakhapatnam"], ["BPL", "Bhopal"], ["NGP", "Nagpur"],
   ["CNB", "Kanpur Central"], ["BBS", "Bhubaneswar"], ["TVC", "Thiruvananthapuram"],
-  ["MYS", "Mysuru"]
+  ["MYS", "Mysuru"], ["ASR", "Amritsar"], ["BRC", "Vadodara"],
+  ["BSP", "Bilaspur"], ["CBE", "Coimbatore"], ["GAYA", "Gaya"],
+  ["GHY", "Guwahati"], ["GTL", "Guntakal"], ["JAT", "Jammu Tawi"],
+  ["KOTA", "Kota"], ["MTJ", "Mathura"], ["NJP", "New Jalpaiguri"],
+  ["ST", "Surat"], ["TATA", "Tatanagar"], ["UBL", "Hubballi"],
+  ["UJN", "Ujjain"], ["YPR", "Yesvantpur"]
 ]);
 const majorStations = [...majorStationNames].map(([code, name]) => schedules.stationByCode.has(code) ? { code, name } : null).filter(Boolean);
 const fareRules = {
