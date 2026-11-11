@@ -201,7 +201,9 @@ function journey(train, from, to) {
   if (start < 0 || end < 0) return null;
   const departure = train.stops[start]; const arrival = train.stops[end];
   if (!departure.departure || !arrival.arrival) return null;
-  return { number: train.number, name: train.name, type: train.type, departure: fullStop(departure), arrival: fullStop(arrival), segment: train.stops.slice(start, end + 1).map(fullStop), duration: minutesAt(arrival.arrival, arrival.arrivalDay) - minutesAt(departure.departure, departure.departureDay), dayDifference: arrival.arrivalDay - departure.departureDay };
+  const fullSegment = train.stops.slice(start, end + 1).map(fullStop);
+  const segment = fullSegment.filter((stop, index) => index === 0 || index === fullSegment.length - 1 || majorStationNames.has(stop.code));
+  return { number: train.number, name: train.name, type: train.type, departure: fullStop(departure), arrival: fullStop(arrival), segment, duration: minutesAt(arrival.arrival, arrival.arrivalDay) - minutesAt(departure.departure, departure.departureDay), dayDifference: arrival.arrivalDay - departure.departureDay };
 }
 
 app.get("/api/health", (req, res) => res.json({ ok: true, backend: "Express", dataSource: schedules.source }));
