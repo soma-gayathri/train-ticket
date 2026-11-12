@@ -2,6 +2,7 @@ const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g,char=>({'&':'
 const bookingStoreKey='railway-demo-bookings-v1';
 const bookingViewerKey='railway-demo-viewer-key';
 const viewerKey=()=>{let key=localStorage.getItem(bookingViewerKey);if(!key){key=crypto.randomUUID();localStorage.setItem(bookingViewerKey,key);}return key;};
+const signedInUser=()=>{try{const user=JSON.parse(localStorage.getItem('railway-demo-auth-user')||'null');return user?.email?user:null;}catch{return null;}};
 const initialTickets=number=>{let total=0;for(const character of String(number))total=(total*31)+character.charCodeAt(0);return 30+(Math.abs(total)%61);};
 const bookedTickets=number=>{try{return JSON.parse(localStorage.getItem(bookingStoreKey)||'{}')[number]||0;}catch{return 0;}};
 const availableTickets=number=>Math.max(0,initialTickets(number)-bookedTickets(number));
@@ -48,6 +49,7 @@ export function installTrainFeatures(root,readApi) {
   root.addEventListener('click',event => {
     const button = event.target.closest('.book-ticket');
     if (!button) return;
+    if(!signedInUser()){location.assign('./login.html?next=./');return;}
     const status = button.parentElement.querySelector('.booking-status');
     const form = button.parentElement.querySelector('.booking-form');
     resetPassengerRows(form);
