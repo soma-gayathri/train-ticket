@@ -10,6 +10,8 @@ const nextPage = new URLSearchParams(location.search).get('next') || './';
 function setMode(nextMode) {
   mode = nextMode;
   const register = mode === 'register';
+  $('auth-title').textContent = register ? 'Create your account' : 'Existing user sign in';
+  $('auth-intro').textContent = register ? 'Enter your name, email, and password. Your account is saved for future demo bookings.' : 'Enter your email and password to continue with booking. New here? Choose Create account.';
   $('name-field').hidden = !register;
   $('auth-name').required = register;
   $('auth-password').autocomplete = register ? 'new-password' : 'current-password';
