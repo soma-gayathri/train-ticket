@@ -25,6 +25,17 @@ const stations = await api("/api/stations");
 assert.ok(stations.stations.length >= 30, "Expected major stations in selector.");
 assert.ok(stations.stations.every(station => station.code && station.name), "Every major station needs a code and name.");
 
+const routePairs = stations.stations.flatMap(from => stations.stations
+  .filter(to => to.code !== from.code)
+  .map(to => ({ from, to })));
+let checkedRoutes = 0;
+await concurrent(routePairs, 12, async ({ from, to }) => {
+  const result = await api(`/api/trains?from=${encodeURIComponent(from.code)}&to=${encodeURIComponent(to.code)}`);
+  assert.ok(Array.isArray(result.trains), `${from.code} to ${to.code} must return a trains array.`);
+  assert.ok(result.trains.every(train => train && train.number && train.name && train.departure && train.arrival && Array.isArray(train.segment)), `${from.code} to ${to.code} returned incomplete train data.`);
+  checkedRoutes += 1;
+});
+
 let checked = 0;
 await concurrent(catalog.services, 12, async service => {
   const details = await api(`/api/trains/${encodeURIComponent(service.number)}`);
@@ -43,4 +54,4 @@ await concurrent(catalog.services, 12, async service => {
   checked += 1;
 });
 
-console.log(`PASS: validated ${checked} trains, ${stations.stations.length} major stations, details, schedules, and Sleeper fares.`);
+console.log(`PASS: validated ${checked} trains, ${stations.stations.length} major stations, ${checkedRoutes} From/To searches, details, schedules, and Sleeper fares.`);
