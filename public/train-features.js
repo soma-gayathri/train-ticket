@@ -1,8 +1,7 @@
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
 const bookingStoreKey='railway-demo-bookings-v1';
-const bookingViewerKey='railway-demo-viewer-key';
-const viewerKey=()=>{let key=localStorage.getItem(bookingViewerKey);if(!key){key=crypto.randomUUID();localStorage.setItem(bookingViewerKey,key);}return key;};
 const signedInUser=()=>{try{const user=JSON.parse(localStorage.getItem('railway-demo-auth-user')||'null');return user?.email?user:null;}catch{return null;}};
+const viewerKey=()=>{const user=signedInUser();if(!user)throw new Error('Please sign in before booking.');const keyName=`railway-demo-viewer-key:${String(user.email).toLowerCase()}`;let key=localStorage.getItem(keyName);if(!key){key=crypto.randomUUID();localStorage.setItem(keyName,key);}return key;};
 const initialTickets=number=>{let total=0;for(const character of String(number))total=(total*31)+character.charCodeAt(0);return 30+(Math.abs(total)%61);};
 const bookedTickets=number=>{try{return JSON.parse(localStorage.getItem(bookingStoreKey)||'{}')[number]||0;}catch{return 0;}};
 const availableTickets=number=>Math.max(0,initialTickets(number)-bookedTickets(number));
