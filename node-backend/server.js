@@ -352,7 +352,12 @@ app.post("/api/bookings/list", (req, res) => {
   if (!/^[a-z0-9-]{32,80}$/i.test(viewerKey)) return res.status(401).json({ error: "This browser cannot view saved bookings." });
   const bookings = bookingDatabase.prepare("SELECT id, pnr, train_number AS trainNumber, train_name AS trainName, travel_class AS travelClass, total_amount AS totalAmount, created_at AS createdAt, from_station AS fromStation, to_station AS toStation, travel_date AS travelDate FROM bookings WHERE viewer_key = ? ORDER BY id DESC").all(viewerKey);
   const passengersForBooking = bookingDatabase.prepare("SELECT name, age, gender, berth_preference AS berthPreference, booking_status AS bookingStatus, coach, berth_number AS berthNumber FROM booking_passengers WHERE booking_id = ? ORDER BY id");
-  res.json({ bookings: bookings.map(booking => ({ ...booking, passengers: passengersForBooking.all(booking.id) })) });
+  res.json({ bookings: bookings.map(booking => {
+    const coachPrefix = { 'Sleeper (SL)': 'S', 'AC 3 Tier (3A)': 'B', 'AC 2 Tier (2A)': 'A', 'Chair Car (CC)': 'C' }[booking.travelClass] || 'S';
+    const seed = [...`${booking.trainNumber}|${booking.travelClass}`].reduce((total, character) => (total * 31 + character.charCodeAt(0)) >>> 0, 7);
+    const passengers = passengersForBooking.all(booking.id).map((passenger, index) => ({ ...passenger, bookingStatus: passenger.bookingStatus || 'Confirmed', coach: passenger.coach || `${coachPrefix}${1 + ((seed + index) % 8)}`, berthNumber: passenger.berthNumber || String(1 + ((seed + index * 7) % 72)) }));
+    return { ...booking, passengers };
+  }) });
 });
 // Your learning endpoint: add RAILRADAR_API_KEY to .env before using it.
 app.get("/api/provider/stations", async (req, res) => {
