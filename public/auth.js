@@ -13,6 +13,7 @@ function setMode(nextMode) {
   $('auth-title').textContent = register ? 'Create your account' : 'Existing user sign in';
   $('auth-intro').textContent = register ? 'Enter your name, email, and password. Your account is saved for future demo bookings.' : 'Enter your email and password to continue with booking. New here? Choose Create account.';
   $('name-field').hidden = !register;
+  $('name-field').style.display = register ? 'flex' : 'none';
   $('auth-name').required = register;
   $('auth-password').autocomplete = register ? 'new-password' : 'current-password';
   $('auth-submit').textContent = register ? 'Create account' : 'Sign in';
@@ -25,6 +26,7 @@ function setMode(nextMode) {
 }
 
 document.querySelectorAll('[data-auth-mode]').forEach(button => button.addEventListener('click', () => setMode(button.dataset.authMode)));
+setMode('login');
 $('auth-form').addEventListener('submit', async event => {
   event.preventDefault();
   const name = $('auth-name').value.trim();
