@@ -40,6 +40,9 @@ try { bookingDatabase.exec("ALTER TABLE bookings ADD COLUMN viewer_key TEXT"); }
 try { bookingDatabase.exec("ALTER TABLE bookings ADD COLUMN from_station TEXT"); } catch {}
 try { bookingDatabase.exec("ALTER TABLE bookings ADD COLUMN to_station TEXT"); } catch {}
 try { bookingDatabase.exec("ALTER TABLE bookings ADD COLUMN travel_date TEXT"); } catch {}
+try { bookingDatabase.exec("ALTER TABLE booking_passengers ADD COLUMN booking_status TEXT NOT NULL DEFAULT 'Confirmed'"); } catch {}
+try { bookingDatabase.exec("ALTER TABLE booking_passengers ADD COLUMN coach TEXT"); } catch {}
+try { bookingDatabase.exec("ALTER TABLE booking_passengers ADD COLUMN berth_number TEXT"); } catch {}
 bookingDatabase.exec("CREATE INDEX IF NOT EXISTS bookings_viewer_key ON bookings(viewer_key)");
 const sessions = new Map();
 
@@ -323,17 +326,20 @@ app.post("/api/bookings", (req, res) => {
     name: String(passenger?.name || "").trim(),
     age: Number(passenger?.age),
     gender: String(passenger?.gender || "").trim(),
-    berthPreference: String(passenger?.berthPreference || "No preference").trim()
+    berthPreference: String(passenger?.berthPreference || "No preference").trim(),
+    bookingStatus: String(passenger?.bookingStatus || "Confirmed").trim(),
+    coach: String(passenger?.coach || "").trim(),
+    berthNumber: String(passenger?.berthNumber || "").trim()
   }));
-  if (cleanPassengers.some(passenger => passenger.name.length < 1 || passenger.name.length > 60 || !Number.isInteger(passenger.age) || passenger.age < 1 || passenger.age > 120 || !['Female', 'Male', 'Other'].includes(passenger.gender) || passenger.berthPreference.length > 30)) {
+  if (cleanPassengers.some(passenger => passenger.name.length < 1 || passenger.name.length > 60 || !Number.isInteger(passenger.age) || passenger.age < 1 || passenger.age > 120 || !['Female', 'Male', 'Other'].includes(passenger.gender) || passenger.berthPreference.length > 30 || passenger.bookingStatus !== 'Confirmed' || passenger.coach.length > 8 || passenger.berthNumber.length > 8)) {
     return res.status(400).json({ error: "Enter valid passenger details." });
   }
   try {
     const createdAt = new Date().toISOString();
     const result = bookingDatabase.prepare("INSERT INTO bookings (pnr, train_number, train_name, travel_class, total_amount, created_at, viewer_key, from_station, to_station, travel_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)").run(pnr, trainNumber, trainName, travelClass, totalAmount, createdAt, viewerKey, fromStation, toStation, travelDate);
     const bookingId = Number(result.lastInsertRowid);
-    const insertPassenger = bookingDatabase.prepare("INSERT INTO booking_passengers (booking_id, name, age, gender, berth_preference) VALUES (?, ?, ?, ?, ?)");
-    for (const passenger of cleanPassengers) insertPassenger.run(bookingId, passenger.name, passenger.age, passenger.gender, passenger.berthPreference);
+    const insertPassenger = bookingDatabase.prepare("INSERT INTO booking_passengers (booking_id, name, age, gender, berth_preference, booking_status, coach, berth_number) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+    for (const passenger of cleanPassengers) insertPassenger.run(bookingId, passenger.name, passenger.age, passenger.gender, passenger.berthPreference, passenger.bookingStatus, passenger.coach, passenger.berthNumber);
     res.status(201).json({ id: bookingId, pnr, passengers: cleanPassengers.length, createdAt });
   } catch (error) {
     if (String(error.message).includes("UNIQUE")) return res.status(409).json({ error: "Please retry demo booking." });
@@ -345,7 +351,7 @@ app.post("/api/bookings/list", (req, res) => {
   const viewerKey = String(req.body?.viewerKey || "").trim();
   if (!/^[a-z0-9-]{32,80}$/i.test(viewerKey)) return res.status(401).json({ error: "This browser cannot view saved bookings." });
   const bookings = bookingDatabase.prepare("SELECT id, pnr, train_number AS trainNumber, train_name AS trainName, travel_class AS travelClass, total_amount AS totalAmount, created_at AS createdAt, from_station AS fromStation, to_station AS toStation, travel_date AS travelDate FROM bookings WHERE viewer_key = ? ORDER BY id DESC").all(viewerKey);
-  const passengersForBooking = bookingDatabase.prepare("SELECT name, age, gender, berth_preference AS berthPreference FROM booking_passengers WHERE booking_id = ? ORDER BY id");
+  const passengersForBooking = bookingDatabase.prepare("SELECT name, age, gender, berth_preference AS berthPreference, booking_status AS bookingStatus, coach, berth_number AS berthNumber FROM booking_passengers WHERE booking_id = ? ORDER BY id");
   res.json({ bookings: bookings.map(booking => ({ ...booking, passengers: passengersForBooking.all(booking.id) })) });
 });
 // Your learning endpoint: add RAILRADAR_API_KEY to .env before using it.
