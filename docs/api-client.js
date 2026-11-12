@@ -11,7 +11,9 @@ export function createApiDataSource(baseUrl='', fetchImpl=globalThis.fetch) {
     const controller = new AbortController();
     const abort = () => controller.abort();
     if (signal?.aborted) abort(); else signal?.addEventListener('abort',abort,{once:true});
-    const timer = setTimeout(abort,15000);
+    // A public tunnel can occasionally stall. Fail quickly instead of leaving the
+    // train-results area on “Searching…” for a long time.
+    const timer = setTimeout(abort,8000);
     try {
       const response = await fetchImpl(base+path,{signal:controller.signal,cache:'no-store',method:options.method || 'GET',headers:{Accept:'application/json','ngrok-skip-browser-warning':'true',...(options.body ? {'Content-Type':'application/json'} : {})},body:options.body ? JSON.stringify(options.body) : undefined});
       let data;
