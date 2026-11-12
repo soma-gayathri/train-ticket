@@ -24,7 +24,7 @@ export function renderBooking(train) {
   const ticketKey = `${train.number}|${travelDate}`;
   const available = availableTickets(ticketKey);
   const label = escapeHtml(train.bookingLabel || 'Book ticket');
-  return `<div class="booking-action"><button type="button" class="book-ticket" data-book-train="${number}" data-book-ticket-key="${escapeHtml(ticketKey)}" data-book-name="${escapeHtml(train.name)}" ${available===0?'disabled':''}>${available===0?'Full':label}</button><span class="ticket-availability ${available===0?'ticket-full':''}" data-ticket-availability="${escapeHtml(ticketKey)}">${availabilityText(ticketKey)}</span><p class="booking-status" role="status" aria-live="polite"></p>
+  return `<div class="booking-action"><button type="button" class="book-ticket" data-book-train="${number}" data-book-ticket-key="${escapeHtml(ticketKey)}" data-book-name="${escapeHtml(train.name)}" data-booking-kind="${train.bookingLabel==='Book this connection'?'connection':'direct'}" ${available===0?'disabled':''}>${available===0?'Full':label}</button><span class="ticket-availability ${available===0?'ticket-full':''}" data-ticket-availability="${escapeHtml(ticketKey)}">${availabilityText(ticketKey)}</span><p class="booking-status" role="status" aria-live="polite"></p>
       <form class="booking-form" data-book-train="${number}" data-book-ticket-key="${escapeHtml(ticketKey)}" data-book-date="${escapeHtml(travelDate)}" data-book-from="${escapeHtml(train.fromStation || '')}" data-book-to="${escapeHtml(train.toStation || '')}" data-book-name="${escapeHtml(train.name)}" data-book-duration="${Math.max(60,Number(train.duration||600))}" data-book-distance="${Math.max(0,Number(train.distanceKm||0))}" hidden>
         <p class="booking-form-title">Passenger details <small>Demo only — do not enter real ID or payment information.</small></p>
         <div class="passenger-list"><div class="passenger-row"><label>Passenger name<input name="passengerName" autocomplete="name" required maxlength="60" placeholder="Enter full name"></label><label>Age<input name="age" type="number" min="1" max="120" required placeholder="Age"></label><label>Gender<select name="gender" required><option value="">Select</option><option>Female</option><option>Male</option><option>Other</option></select></label><label>Berth preference<select name="berth"><option>No preference</option><option>Lower</option><option>Middle</option><option>Upper</option><option>Side lower</option><option>Side upper</option></select></label></div></div>
@@ -49,7 +49,12 @@ export function installTrainFeatures(root,readApi) {
   root.addEventListener('click',event => {
     const button = event.target.closest('.book-ticket');
     if (!button) return;
-    if(!signedInUser()){location.assign('./login.html?next=./');return;}
+    if(!signedInUser()){
+      const form=button.parentElement.querySelector('.booking-form');
+      sessionStorage.setItem('railway-post-login-booking',JSON.stringify({trainNumber:button.dataset.bookTrain,ticketKey:button.dataset.bookTicketKey,connection:button.dataset.bookingKind==='connection'}));
+      sessionStorage.setItem('railway-post-login-search',JSON.stringify({from:form.dataset.bookFrom,to:form.dataset.bookTo,travelDate:form.dataset.bookDate}));
+      location.assign('./login.html?next=./');return;
+    }
     const status = button.parentElement.querySelector('.booking-status');
     const form = button.parentElement.querySelector('.booking-form');
     resetPassengerRows(form);
