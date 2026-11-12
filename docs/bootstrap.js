@@ -1,4 +1,4 @@
-import { createApiDataSource } from './api-client.js?v=67009cd13a6d';
+import { createApiDataSource } from './api-client.js?v=7cffe17ac5f6';
 
 const release = new URL(import.meta.url).searchParams.get('v');
 globalThis.railwayAssetVersion = release;
