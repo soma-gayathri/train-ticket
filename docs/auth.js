@@ -7,6 +7,10 @@ const api = createApiDataSource(config.apiBaseUrl || '');
 let mode = 'login';
 const nextPage = new URLSearchParams(location.search).get('next') || './';
 
+$('auth-back').addEventListener('click', event => {
+  if (history.length > 1) { event.preventDefault(); history.back(); }
+});
+
 function setMode(nextMode) {
   mode = nextMode;
   const register = mode === 'register';
