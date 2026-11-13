@@ -227,9 +227,8 @@ function railwayDistanceEstimate(from, to, fallbackKm) {
   return Math.max(90, Math.round((straightLineKm * 1.28) + 15));
 }
 function journey(train, from, to) {
-  const fromCodes = matchingTerminals(from); const toCodes = matchingTerminals(to);
-  const start = train.stops.findIndex(stop => fromCodes.includes(stop.code));
-  const end = train.stops.findIndex((stop, index) => index > start && toCodes.includes(stop.code));
+  const start = train.stops.findIndex(stop => stop.code === from);
+  const end = train.stops.findIndex((stop, index) => index > start && stop.code === to);
   if (start < 0 || end < 0) return null;
   const departure = train.stops[start]; const arrival = train.stops[end];
   if (!departure.departure || !arrival.arrival) return null;

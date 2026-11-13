@@ -33,6 +33,7 @@ await concurrent(routePairs, 12, async ({ from, to }) => {
   const result = await api(`/api/trains?from=${encodeURIComponent(from.code)}&to=${encodeURIComponent(to.code)}`);
   assert.ok(Array.isArray(result.trains), `${from.code} to ${to.code} must return a trains array.`);
   assert.ok(result.trains.every(train => train && train.number && train.name && train.departure && train.arrival && Array.isArray(train.segment)), `${from.code} to ${to.code} returned incomplete train data.`);
+  assert.ok(result.trains.every(train => train.departure.code === from.code && train.arrival.code === to.code), `${from.code} to ${to.code} returned a city-area train that does not stop at the selected stations.`);
   checkedRoutes += 1;
 });
 
