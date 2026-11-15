@@ -7,7 +7,7 @@ const root = fileURLToPath(new URL('../', import.meta.url));
 // GitHub Pages can publish this directory directly from the main branch.
 const output = path.join(root, 'docs');
 mkdirSync(output, { recursive: true });
-const assets = ['app.js', 'station-autocomplete.js', 'api-client.js', 'bootstrap.js', 'train-features.js', 'auth.js', 'config.json'];
+const assets = ['app.js', 'station-autocomplete.js', 'api-client.js', 'bootstrap.js', 'train-features.js', 'auth.js', 'config.json', 'railway-hero.jpg'];
 for (const file of assets) copyFileSync(path.join(root, 'public', file), path.join(output, file));
 writeFileSync(path.join(output, 'styles.css'), readFileSync(path.join(root, 'public/styles.css'), 'utf8').replace(/@import\s+url\([^;]+;/g, ''));
 
