@@ -74,6 +74,27 @@ function clearSession(request, response) { const token = readCookies(request).ra
 
 app.use(express.json({ limit: "10kb" }));
 
+// Keys are stored as hashes so the real developer key is never kept in source code.
+const developerApiKeyHash = String(process.env.DEVELOPER_API_KEY_HASH || "").trim().toLowerCase();
+const developerRateLimit = Math.max(1, Number(process.env.DEVELOPER_API_RATE_LIMIT || 60));
+const developerRequests = new Map();
+function developerApiKey(request) {
+  const header = String(request.headers.authorization || "");
+  return header.startsWith("Bearer ") ? header.slice(7).trim() : "";
+}
+function developerApiGuard(request, response, next) {
+  if (!developerApiKeyHash) return response.status(503).json({ error: "Developer API is not configured. Set DEVELOPER_API_KEY_HASH on the server." });
+  const key = developerApiKey(request);
+  const suppliedHash = crypto.createHash("sha256").update(key).digest("hex");
+  if (!key || suppliedHash.length !== developerApiKeyHash.length || !crypto.timingSafeEqual(Buffer.from(suppliedHash), Buffer.from(developerApiKeyHash))) return response.status(401).json({ error: "A valid Bearer API key is required." });
+  const now = Date.now(); const calls = (developerRequests.get(suppliedHash) || []).filter(time => time > now - 60000);
+  if (calls.length >= developerRateLimit) return response.status(429).json({ error: "Rate limit exceeded. Try again in one minute." });
+  calls.push(now); developerRequests.set(suppliedHash, calls);
+  response.setHeader("X-RateLimit-Limit", String(developerRateLimit));
+  response.setHeader("X-RateLimit-Remaining", String(Math.max(0, developerRateLimit - calls.length)));
+  next();
+}
+
 function blockFor(table) {
   const source = fs.readFileSync(seedFile, "utf8");
   const match = source.match(new RegExp(`INSERT OR IGNORE INTO ${table}[\\s\\S]*?;`));
@@ -240,6 +261,33 @@ function journey(train, from, to) {
 }
 
 app.get("/api/health", (req, res) => res.json({ ok: true, backend: "Express", dataSource: schedules.source }));
+
+// Versioned API for other developers. It deliberately serves our demo data,
+// not live IRCTC or railway availability data.
+app.get("/v1/stations", developerApiGuard, (req, res) => {
+  const query = String(req.query.q || "").trim().toLowerCase();
+  const limit = Math.min(50, Math.max(1, Number.parseInt(req.query.limit, 10) || 20));
+  const stations = schedules.stations.filter(station => !query || station.code.toLowerCase().includes(query) || station.name.toLowerCase().includes(query)).slice(0, limit);
+  res.json({ version: "v1", stations, count: stations.length, source: "illustrative-demo-data" });
+});
+app.get("/v1/trains", developerApiGuard, (req, res) => {
+  const from = String(req.query.from || "").trim().toUpperCase(); const to = String(req.query.to || "").trim().toUpperCase();
+  const date = String(req.query.date || "").trim();
+  if (!from || !to || from === to || !schedules.stationByCode.has(from) || !schedules.stationByCode.has(to)) return res.status(400).json({ error: "Use two different valid station codes for from and to." });
+  if (date && (!/^\d{4}-\d{2}-\d{2}$/.test(date) || Number.isNaN(Date.parse(date)))) return res.status(400).json({ error: "date must use YYYY-MM-DD format." });
+  const trains = schedules.trains.map(train => journey(train, from, to)).filter(Boolean).map(trip => ({
+    number: trip.number, name: trip.name, type: trip.type,
+    departure: { station: trip.departure.name, code: trip.departure.code, time: trip.departure.departure, day: trip.departure.departureDay },
+    arrival: { station: trip.arrival.name, code: trip.arrival.code, time: trip.arrival.arrival, day: trip.arrival.arrivalDay },
+    durationMinutes: trip.duration, distanceKm: trip.distanceKm
+  }));
+  res.json({ version: "v1", from: { code: from, name: schedules.stationByCode.get(from).name }, to: { code: to, name: schedules.stationByCode.get(to).name }, date: date || null, trains, disclaimer: "Illustrative demo timetable and estimated distance only; not live railway or IRCTC data." });
+});
+app.get("/v1/trains/:trainNumber", developerApiGuard, (req, res) => {
+  const train = schedules.trains.find(item => item.number === String(req.params.trainNumber));
+  if (!train) return res.status(404).json({ error: "Train was not found." });
+  res.json({ version: "v1", number: train.number, name: train.name, type: train.type, stops: train.stops.map(fullStop), disclaimer: "Illustrative demo timetable only; not live railway or IRCTC data." });
+});
 app.get("/api/auth/me", (req, res) => { const user = currentUser(req); if (!user) return res.status(401).json({ error: "You are not signed in." }); res.json({ user: publicUser(user) }); });
 app.post("/api/auth/register", async (req, res) => {
   const name = String(req.body?.name || "").trim(); const email = String(req.body?.email || "").trim().toLowerCase(); const password = String(req.body?.password || "");
